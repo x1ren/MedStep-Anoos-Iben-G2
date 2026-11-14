@@ -9,9 +9,9 @@ PASSWORD = 'pw-Test-123'
 class NavbarTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.student = User.objects.create_user('stud', 'stud@example.com', PASSWORD)
-        cls.instructor = User.objects.create_user(
-            'inst', 'inst@example.com', PASSWORD, role=User.Role.ADMIN
+        cls.learner = User.objects.create_user('lea', 'lea@example.com', PASSWORD)
+        cls.lab_admin = User.objects.create_user(
+            'curator', 'curator@example.com', PASSWORD, role=User.Role.ADMIN
         )
 
     def nav_html(self, user=None):
@@ -26,37 +26,44 @@ class NavbarTests(TestCase):
         self.assertNotIn('My profile', html)
         self.assertNotIn(reverse('accounts:logout'), html)
 
-    def test_student_links(self):
-        html = self.nav_html(self.student)
-        self.assertIn(f"{reverse('dashboard:student')}#modules", html)
-        self.assertIn(f"{reverse('dashboard:student')}#progress", html)
-        self.assertIn('My progress', html)
-        self.assertNotIn(reverse('dashboard:instructor'), html)
-        self.assertNotIn('Student roster', html)
-        self.assertNotIn('Performance', html)
+    def test_learner_links(self):
+        html = self.nav_html(self.learner)
+        learner_url = reverse('dashboard:learner')
+        for anchor in ('#quick-start', '#modules', '#stats'):
+            self.assertIn(f'{learner_url}{anchor}', html)
+        self.assertIn('Playground', html)
+        self.assertNotIn(reverse('dashboard:admin'), html)
+        self.assertNotIn('Lab Management', html)
 
-    def test_instructor_links(self):
-        html = self.nav_html(self.instructor)
-        self.assertIn(f"{reverse('dashboard:instructor')}#roster", html)
-        self.assertIn(f"{reverse('dashboard:instructor')}#modules", html)
-        self.assertIn(f"{reverse('dashboard:instructor')}#performance", html)
-        self.assertNotIn(reverse('dashboard:student'), html)
-        self.assertNotIn('My progress', html)
+    def test_lab_admin_links(self):
+        html = self.nav_html(self.lab_admin)
+        admin_url = reverse('dashboard:admin')
+        for anchor in ('#catalog', '#scenarios', '#engagement'):
+            self.assertIn(f'{admin_url}{anchor}', html)
+        self.assertIn('Lab Management', html)
+        self.assertNotIn(reverse('dashboard:learner'), html)
+        self.assertNotIn('Quick start', html)
 
-    def test_admin_link_only_for_staff_instructors(self):
-        self.assertNotIn(reverse('admin:index'), self.nav_html(self.instructor))
-        self.instructor.is_staff = True
-        self.instructor.save()
-        self.assertIn(reverse('admin:index'), self.nav_html(self.instructor))
+    def test_admin_site_link_only_for_staff(self):
+        admin_site_link = f'href="{reverse("admin:index")}"'
+        self.assertNotIn(admin_site_link, self.nav_html(self.lab_admin))
+        self.lab_admin.is_staff = True
+        self.lab_admin.save()
+        self.assertIn(admin_site_link, self.nav_html(self.lab_admin))
 
     def test_role_badge(self):
-        self.assertIn('text-bg-info', self.nav_html(self.student))
+        html = self.nav_html(self.learner)
+        self.assertIn('text-bg-info', html)
+        self.assertIn('Learner', html)
         self.client.logout()
-        self.assertIn('text-bg-warning', self.nav_html(self.instructor))
+        html = self.nav_html(self.lab_admin)
+        self.assertIn('text-bg-warning', html)
+        self.assertIn('Lab Admin', html)
 
     def test_account_menu(self):
-        html = self.nav_html(self.student)
+        html = self.nav_html(self.learner)
         self.assertIn(reverse('accounts:profile'), html)
         self.assertIn(reverse('accounts:profile_edit'), html)
+        self.assertIn(reverse('accounts:password_change'), html)
         self.assertIn('/static/img/default-avatar.svg', html)
         self.assertIn(f'<form method="post" action="{reverse("accounts:logout")}">', html)

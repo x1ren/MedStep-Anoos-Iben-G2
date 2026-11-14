@@ -1,179 +1,222 @@
 from urllib.parse import quote
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from accounts.models import User
+from dashboard.catalog import LAB_MODULES, SCENARIOS, SPECIMENS, scenarios_with_details
 
 PASSWORD = 'Gr4mStain!Violet'
 
 
-class StudentDashboardTests(TestCase):
-    url = reverse('dashboard:student')
+def make_learner(username='lea', **extra):
+    return User.objects.create_user(username, f'{username}@example.com', PASSWORD, **extra)
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.student = User.objects.create_user(
-            'stud', 'stud@example.com', PASSWORD, first_name='Lea'
+
+def make_admin(username='curator', **extra):
+    return User.objects.create_user(
+        username, f'{username}@example.com', PASSWORD, role=User.Role.ADMIN, **extra
+    )
+
+
+class CatalogIntegrityTests(SimpleTestCase):
+    def test_scenarios_reference_existing_modules_and_specimens(self):
+        module_slugs = {m['slug'] for m in LAB_MODULES}
+        specimen_slugs = {s['slug'] for s in SPECIMENS}
+        for scenario in SCENARIOS:
+            with self.subTest(scenario=scenario['slug']):
+                self.assertIn(scenario['module'], module_slugs)
+                self.assertTrue(set(scenario['specimens']) <= specimen_slugs)
+                self.assertIn(scenario['status'], {'active', 'draft'})
+
+    def test_scenarios_with_details_resolves_names(self):
+        mixed = next(s for s in scenarios_with_details() if s['slug'] == 'gram-mixed')
+        self.assertEqual(mixed['module_title'], 'Gram Staining')
+        self.assertEqual(
+            [s['name'] for s in mixed['specimen_list']],
+            ['Staphylococcus aureus', 'Escherichia coli'],
         )
-        cls.instructor = User.objects.create_user(
-            'inst', 'inst@example.com', PASSWORD, role=User.Role.ADMIN
-        )
-
-    def test_anonymous_redirected_to_login(self):
-        response = self.client.get(self.url)
-        expected = f"{reverse('accounts:login')}?next={quote(self.url)}"
-        self.assertRedirects(response, expected)
-
-    def test_student_sees_dashboard(self):
-        self.client.force_login(self.student)
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'dashboard/student.html')
-        self.assertContains(response, 'Welcome, Lea!')
-
-    def test_shows_both_modules_and_progress(self):
-        self.client.force_login(self.student)
-        response = self.client.get(self.url)
-        self.assertContains(response, 'Gram Staining')
-        self.assertContains(response, 'Quadrant Streak Plating')
-        self.assertContains(response, 'Crystal violet (primary stain)')
-        self.assertContains(response, 'Practice progress')
-        self.assertEqual(len(response.context['modules']), 2)
-        self.assertTrue(all(m['progress'] == 0 for m in response.context['modules']))
-
-    def test_instructor_is_forbidden(self):
-        self.client.force_login(self.instructor)
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 403)
-        self.assertTemplateUsed(response, '403.html')
 
 
 class DashboardRedirectTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.student = User.objects.create_user('stud', 'stud@example.com', PASSWORD)
-
-    def test_dashboard_home_requires_login(self):
+    def test_requires_login(self):
         response = self.client.get(reverse('dashboard:home'))
-        self.assertEqual(response.status_code, 302)
         self.assertTrue(response['Location'].startswith(reverse('accounts:login')))
 
-    def test_dashboard_home_sends_student_to_student_dashboard(self):
-        self.client.force_login(self.student)
-        response = self.client.get(reverse('dashboard:home'))
-        self.assertRedirects(response, reverse('dashboard:student'))
+    def test_learner_redirected_to_learner_dashboard(self):
+        self.client.force_login(make_learner())
+        self.assertRedirects(self.client.get(reverse('dashboard:home')), reverse('dashboard:learner'))
 
-    def test_dashboard_home_sends_instructor_to_instructor_dashboard(self):
-        instructor = User.objects.create_user(
-            'inst', 'inst@example.com', PASSWORD, role=User.Role.ADMIN
-        )
-        self.client.force_login(instructor)
-        response = self.client.get(reverse('dashboard:home'))
-        self.assertRedirects(response, reverse('dashboard:instructor'))
+    def test_admin_redirected_to_admin_dashboard(self):
+        self.client.force_login(make_admin())
+        self.assertRedirects(self.client.get(reverse('dashboard:home')), reverse('dashboard:admin'))
 
-    def test_instructor_login_lands_on_instructor_dashboard(self):
-        User.objects.create_user('inst', 'inst@example.com', PASSWORD, role=User.Role.ADMIN)
+    def test_learner_login_lands_on_learner_dashboard(self):
+        make_learner()
         response = self.client.post(
-            reverse('accounts:login'),
-            {'username': 'inst', 'password': PASSWORD},
-            follow=True,
+            reverse('accounts:login'), {'username': 'lea', 'password': PASSWORD}, follow=True
         )
-        self.assertRedirects(response, reverse('dashboard:instructor'))
-
-    def test_student_login_lands_on_student_dashboard(self):
-        response = self.client.post(
-            reverse('accounts:login'),
-            {'username': 'stud', 'password': PASSWORD},
-            follow=True,
-        )
-        self.assertRedirects(response, reverse('dashboard:student'))
+        self.assertRedirects(response, reverse('dashboard:learner'))
         self.assertContains(response, 'Welcome back')
 
+    def test_admin_login_lands_on_admin_dashboard(self):
+        make_admin()
+        response = self.client.post(
+            reverse('accounts:login'), {'username': 'curator', 'password': PASSWORD}, follow=True
+        )
+        self.assertRedirects(response, reverse('dashboard:admin'))
 
-class InstructorDashboardTests(TestCase):
-    url = reverse('dashboard:instructor')
+    def test_old_dashboard_urls_are_gone(self):
+        self.client.force_login(make_learner())
+        for url in ('/dashboard/student/', '/dashboard/instructor/'):
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 404)
+
+
+class LearnerDashboardTests(TestCase):
+    url = reverse('dashboard:learner')
 
     @classmethod
     def setUpTestData(cls):
-        cls.instructor = User.objects.create_user(
-            'inst', 'inst@example.com', PASSWORD,
-            first_name='Maria', last_name='Cruz', role=User.Role.ADMIN,
-        )
-        cls.student = User.objects.create_user(
-            'stud', 'stud@example.com', PASSWORD, first_name='Lea', last_name='Santos'
-        )
+        cls.learner = make_learner(first_name='Lea')
+        cls.admin = make_admin()
+
+    def test_url(self):
+        self.assertEqual(self.url, '/dashboard/learner/')
 
     def test_anonymous_redirected_to_login(self):
         response = self.client.get(self.url)
-        expected = f"{reverse('accounts:login')}?next={quote(self.url)}"
-        self.assertRedirects(response, expected)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={quote(self.url)}")
 
-    def test_student_is_forbidden(self):
-        """Vertical privilege escalation attempt via URL manipulation."""
-        self.client.force_login(self.student)
+    def test_admin_is_forbidden(self):
+        """Horizontal escalation: Lab Admin opening the learner-only page."""
+        self.client.force_login(self.admin)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 403)
         self.assertTemplateUsed(response, '403.html')
-        self.assertNotContains(response, 'Student roster', status_code=403)
 
-    def test_instructor_sees_all_sections(self):
-        self.client.force_login(self.instructor)
+    def test_learner_sees_playground(self):
+        self.client.force_login(self.learner)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'dashboard/instructor.html')
-        for text in ('Student roster', 'Lab module management', 'Performance overview',
-                     'Gram Staining', 'Quadrant Streak Plating'):
+        self.assertTemplateUsed(response, 'dashboard/learner.html')
+        for text in ('Student Playground', 'Welcome, Lea!', 'Quick start',
+                     'Gram Staining', 'Quadrant Streak Plating', 'My simulation stats'):
             self.assertContains(response, text)
 
-    def test_roster_lists_students_only(self):
-        self.client.force_login(self.instructor)
+    def test_quick_start_cards(self):
+        self.client.force_login(self.learner)
         response = self.client.get(self.url)
-        self.assertEqual(list(response.context['students']), [self.student])
-        # Roster rows render "@username"; the instructor must not have a row.
-        self.assertContains(response, '>@stud</div>')
-        self.assertNotContains(response, '>@inst</div>')
+        self.assertEqual(len(response.context['quick_starts']), 3)
+        self.assertContains(response, 'Decolorizer timing drill')
 
-    def test_stats(self):
-        User.objects.create_user('old', 'old@example.com', PASSWORD)
-        self.client.force_login(self.student)  # gives the student a recent last_login
-        self.client.logout()
-        self.client.force_login(self.instructor)
+    def test_personal_stats_start_at_zero(self):
+        self.client.force_login(self.learner)
         stats = self.client.get(self.url).context['stats']
-        self.assertEqual(stats['total_students'], 2)
-        self.assertEqual(stats['active_this_week'], 1)  # only "stud" has logged in
-        self.assertEqual(stats['new_this_month'], 2)
-        self.assertEqual(stats['modules'], 2)
+        self.assertEqual(stats['sessions'], 0)
+        self.assertEqual(stats['modules_completed'], 0)
+        self.assertEqual(stats['modules_available'], 2)
+        self.assertIsNone(stats['best_score'])
 
-    def test_search_filters_roster(self):
-        User.objects.create_user('juan', 'juan@example.com', PASSWORD, first_name='Juan')
-        self.client.force_login(self.instructor)
+    def test_does_not_leak_admin_content(self):
+        self.client.force_login(self.learner)
+        response = self.client.get(self.url)
+        self.assertNotContains(response, 'Bacterial specimens')
+        self.assertNotContains(response, 'curator@example.com')
+
+
+class AdminDashboardTests(TestCase):
+    url = reverse('dashboard:admin')
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = make_admin(first_name='Maria', last_name='Cruz')
+        cls.learner = make_learner(first_name='Lea', last_name='Santos')
+
+    def test_url(self):
+        self.assertEqual(self.url, '/dashboard/admin/')
+
+    def test_anonymous_redirected_to_login(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={quote(self.url)}")
+
+    def test_learner_is_forbidden(self):
+        """Vertical escalation: learner typing the Lab Admin URL."""
+        self.client.force_login(self.learner)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+        self.assertTemplateUsed(response, '403.html')
+        self.assertContains(
+            response, 'restricted to Lab Admin / Content Curator accounts', status_code=403
+        )
+        self.assertNotContains(response, 'Active lab scenarios', status_code=403)
+
+    def test_admin_sees_all_sections(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'dashboard/admin.html')
+        for text in ('Lab Management Dashboard', 'Catalog overview', 'Bacterial specimens',
+                     'Active lab scenarios', 'Learner activity', 'Staphylococcus aureus'):
+            self.assertContains(response, text)
+
+    def test_catalog_overview_counts(self):
+        self.client.force_login(self.admin)
+        catalog = self.client.get(self.url).context['catalog']
+        self.assertEqual(catalog['modules'], 2)
+        self.assertEqual(catalog['specimens'], 6)
+        self.assertEqual(catalog['gram_positive'] + catalog['gram_negative'], 6)
+        self.assertEqual(catalog['scenarios'], catalog['active_scenarios'] + catalog['draft_scenarios'])
+
+    def test_only_active_scenarios_listed(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url)
+        statuses = {s['status'] for s in response.context['active_scenarios']}
+        self.assertEqual(statuses, {'active'})
+        self.assertContains(response, 'Mixed smear: Gram-positive vs Gram-negative')
+        self.assertNotContains(response, 'Over-decolorization challenge')  # draft
+
+    def test_engagement_metrics(self):
+        make_learner('idle')
+        self.client.force_login(self.learner)  # gives "lea" a recent last_login
+        self.client.logout()
+        self.client.force_login(self.admin)
+        engagement = self.client.get(self.url).context['engagement']
+        self.assertEqual(engagement['total_learners'], 2)
+        self.assertEqual(engagement['active_7d'], 1)
+        self.assertEqual(engagement['engagement_rate'], 50)
+        self.assertEqual(engagement['new_30d'], 2)
+        self.assertEqual(engagement['lab_admins'], 1)
+
+    def test_engagement_rate_with_no_learners(self):
+        User.objects.filter(role=User.Role.LEARNER).delete()
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get(self.url).context['engagement']['engagement_rate'], 0)
+
+    def test_learner_list_excludes_admins(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url)
+        self.assertEqual(list(response.context['learners']), [self.learner])
+        self.assertContains(response, '>@lea</div>')
+        self.assertNotContains(response, '>@curator</div>')
+
+    def test_search(self):
+        make_learner('juan', first_name='Juan')
+        self.client.force_login(self.admin)
         response = self.client.get(self.url, {'q': 'juan'})
-        self.assertEqual([u.username for u in response.context['students']], ['juan'])
-        self.assertContains(response, '1 result for')
-
+        self.assertEqual([u.username for u in response.context['learners']], ['juan'])
         response = self.client.get(self.url, {'q': 'SANTOS'})
-        self.assertEqual([u.username for u in response.context['students']], ['stud'])
+        self.assertEqual([u.username for u in response.context['learners']], ['lea'])
+        response = self.client.get(self.url, {'q': 'curator'})
+        self.assertEqual(list(response.context['learners']), [])
+        self.assertContains(response, 'No learners match')
 
-    def test_search_cannot_reveal_instructors(self):
-        self.client.force_login(self.instructor)
-        response = self.client.get(self.url, {'q': 'inst'})
-        self.assertEqual(list(response.context['students']), [])
-        self.assertContains(response, 'No students match')
-
-    def test_roster_is_paginated(self):
+    def test_pagination_keeps_search(self):
         for i in range(12):
-            User.objects.create_user(f'extra{i:02}', f'extra{i}@example.com', PASSWORD)
-        self.client.force_login(self.instructor)
-        page1 = self.client.get(self.url)
-        self.assertTrue(page1.context['is_paginated'])
-        self.assertEqual(len(page1.context['students']), 10)
-        page2 = self.client.get(self.url, {'page': 2})
-        self.assertEqual(len(page2.context['students']), 3)
-
-    def test_pagination_links_keep_search(self):
-        for i in range(12):
-            User.objects.create_user(f'lab{i:02}', f'lab{i}@example.com', PASSWORD)
-        self.client.force_login(self.instructor)
+            make_learner(f'lab{i:02}')
+        self.client.force_login(self.admin)
         response = self.client.get(self.url, {'q': 'lab'})
-        self.assertContains(response, '?q=lab&amp;page=2')
+        self.assertEqual(len(response.context['learners']), 10)
+        self.assertContains(response, '?q=lab&amp;page=2#engagement')
+        page2 = self.client.get(self.url, {'q': 'lab', 'page': 2})
+        self.assertEqual(len(page2.context['learners']), 2)

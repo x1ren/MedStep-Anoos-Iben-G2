@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+
+{% block title %}Lab Management{% endblock %}
+
+{% block content %}
+{# ---------- Welcome ---------- #}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <p class="ms-eyebrow mb-1">Lab Management Dashboard</p>
+    <h1 class="h3 fw-bold mb-1">Good day, {{ user.get_full_name|default:user.username }}</h1>
+    <p class="text-muted mb-0">Curate simulation scenarios, bacterial specimens and the MedStep lab catalog.</p>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <span class="badge rounded-pill bg-primary-soft text-primary px-3 py-2">
+      <i class="bi bi-person-badge me-1"></i> {{ user.get_role_display }}
+    </span>
+    {% if user.is_staff %}
+      <a href="{% url 'admin:accounts_user_changelist' %}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-gear me-1"></i> Manage users
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+{# ---------- Catalog management overview ---------- #}
+<section id="catalog" class="mb-5">
+  <p class="ms-eyebrow mb-1">Catalog management</p>
+  <h2 class="h5 fw-bold mb-3">Catalog overview</h2>
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+      <div class="ms-card p-3 h-100 d-flex gap-3 align-items-center">
+        <span class="ms-icon-tile ms-tile-primary"><i class="bi bi-grid"></i></span>
+        <div><div class="ms-stat-value">{{ catalog.modules }}</div><div class="text-muted small">Lab modules</div></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="ms-card p-3 h-100 d-flex gap-3 align-items-center">
+        <span class="ms-icon-tile ms-tile-streak"><i class="bi bi-collection"></i></span>
+        <div>
+          <div class="ms-stat-value">{{ catalog.scenarios }}</div>
+          <div class="text-muted small">Scenarios &middot; {{ catalog.active_scenarios }} active, {{ catalog.draft_scenarios }} draft</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="ms-card p-3 h-100 d-flex gap-3 align-items-center">
+        <span class="ms-icon-tile ms-tile-gram"><i class="bi bi-virus"></i></span>
+        <div><div class="ms-stat-value">{{ catalog.gram_positive }}</div><div class="text-muted small">Gram-positive specimens</div></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="ms-card p-3 h-100 d-flex gap-3 align-items-center">
+        <span class="ms-icon-tile ms-tile-neg"><i class="bi bi-virus2"></i></span>
+        <div><div class="ms-stat-value">{{ catalog.gram_negative }}</div><div class="text-muted small">Gram-negative specimens</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="ms-card p-4 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="h6 fw-bold mb-0">Modules</h3>
+          <button type="button" class="btn btn-outline-primary btn-sm" disabled><i class="bi bi-plus-lg me-1"></i>New module</button>
+        </div>
+        <ul class="list-unstyled mb-0">
+          {% for module in modules %}
+            <li class="d-flex gap-3 align-items-center{% if not forloop.last %} mb-3{% endif %}">
+              <span class="ms-icon-tile {{ module.tile }}"><i class="bi {{ module.icon }}"></i></span>
+              <div class="flex-grow-1">
+                <div class="fw-semibold">{{ module.title }}</div>
+                <div class="text-muted small">{{ module.steps|length }} steps &middot; {{ module.duration }}</div>
+              </div>
+              <button type="button" class="btn btn-light btn-sm" disabled aria-label="Edit {{ module.title }}"><i class="bi bi-pencil"></i></button>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="ms-card overflow-hidden h-100">
+        <div class="d-flex justify-content-between align-items-center px-4 pt-4 pb-2">
+          <h3 class="h6 fw-bold mb-0">Bacterial specimens</h3>
+          <button type="button" class="btn btn-outline-primary btn-sm" disabled><i class="bi bi-plus-lg me-1"></i>Add specimen</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table ms-table align-middle mb-0">
+            <thead><tr><th class="ps-4">Organism</th><th>Gram reaction</th><th class="pe-4">Morphology</th></tr></thead>
+            <tbody>
+              {% for specimen in specimens %}
+                <tr>
+                  <td class="ps-4 fst-italic">{{ specimen.name }}</td>
+                  <td>
+                    {% if specimen.gram == 'positive' %}
+                      <span class="badge ms-badge-gram-pos">Gram-positive</span>
+                    {% else %}
+                      <span class="badge ms-badge-gram-neg">Gram-negative</span>
+                    {% endif %}
+                  </td>
+                  <td class="pe-4 text-muted">{{ specimen.morphology }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ---------- Active lab scenarios ---------- #}
+<section id="scenarios" class="mb-5">
+  <div class="d-flex justify-content-between align-items-end mb-3">
+    <div>
+      <p class="ms-eyebrow mb-1">Simulation scenarios</p>
+      <h2 class="h5 fw-bold mb-0">Active lab scenarios</h2>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" disabled><i class="bi bi-plus-lg me-1"></i>New scenario</button>
+  </div>
+  <div class="ms-card overflow-hidden">
+    <div class="table-responsive">
+      <table class="table ms-table align-middle mb-0">
+        <thead>
+          <tr><th class="ps-4">Scenario</th><th>Module</th><th>Specimens</th><th>Difficulty</th><th class="pe-4">Status</th></tr>
+        </thead>
+        <tbody>
+          {% for scenario in active_scenarios %}
+            <tr>
+              <td class="ps-4 fw-semibold">{{ scenario.title }}</td>
+              <td>{{ scenario.module_title }}</td>
+              <td class="fst-italic small">{% for s in scenario.specimen_list %}{{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+              <td>{{ scenario.difficulty }}</td>
+              <td class="pe-4"><span class="badge text-bg-success-subtle text-success-emphasis">Active</span></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="text-center text-muted p-4">No active scenarios.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="px-4 py-3 border-top text-muted small">
+      <i class="bi bi-info-circle me-1"></i>
+      {{ catalog.draft_scenarios }} draft scenario{{ catalog.draft_scenarios|pluralize }} not yet visible to learners.
+      Catalog editing is enabled in a later increment.
+    </div>
+  </div>
+</section>
+
+{# ---------- User engagement ---------- #}
+<section id="engagement">
+  <p class="ms-eyebrow mb-1">User engagement</p>
+  <h2 class="h5 fw-bold mb-3">Learner activity</h2>
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+      <div class="ms-card p-3 h-100 d-flex gap-3 align-items-center">
+        <span class="ms-icon-tile ms-tile-primary"><i class="bi bi-people"></i></span>
+        <div><div class="ms-stat-value">{{ engagement.total_learners }}</div><div class="text-muted small">Registered learners</div></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="ms-card p-3 h-100 d-flex gap-3 align-items-center">
+        <span class="ms-icon-tile ms-tile-gram"><i class="bi bi-activity"></i></span>
+        <div><div class="ms-stat-value">{{ engagement.active_7d }}</div><div class="text-muted small">Active in last 7 days</div></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="ms-card p-3 h-100 d-flex gap-3 align-items-center">
+        <span class="ms-icon-tile ms-tile-streak"><i class="bi bi-graph-up-arrow"></i></span>
+        <div><div class="ms-stat-value">{{ engagement.engagement_rate }}%</div><div class="text-muted small">Weekly engagement rate</div></div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="ms-card p-3 h-100 d-flex gap-3 align-items-center">
+        <span class="ms-icon-tile ms-tile-neg"><i class="bi bi-person-plus"></i></span>
+        <div><div class="ms-stat-value">{{ engagement.new_30d }}</div><div class="text-muted small">New in last 30 days</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-2 mb-3">
+    <h3 class="h6 fw-bold mb-0">
+      {% if q %}{{ paginator.count }} result{{ paginator.count|pluralize }} for &ldquo;{{ q }}&rdquo;{% else %}All learners{% endif %}
+    </h3>
+    <form method="get" action="#engagement" class="d-flex gap-2" role="search">
+      <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm"
+             placeholder="Search name, username, email" aria-label="Search learners">
+      <button class="btn btn-primary btn-sm px-3" type="submit"><i class="bi bi-search"></i></button>
+      {% if q %}<a href="{% url 'dashboard:admin' %}#engagement" class="btn btn-outline-secondary btn-sm">Clear</a>{% endif %}
+    </form>
+  </div>
+
+  <div class="ms-card overflow-hidden">
+    {% if learners %}
+      <div class="table-responsive">
+        <table class="table ms-table align-middle mb-0">
+          <thead>
+            <tr><th class="ps-4">Learner</th><th>Email</th><th>Joined</th><th>Last sign-in</th><th class="pe-4">Status</th></tr>
+          </thead>
+          <tbody>
+            {% for learner in learners %}
+              <tr>
+                <td class="ps-4">
+                  <div class="d-flex align-items-center gap-2">
+                    <img src="{{ learner.avatar_url }}" alt="" class="ms-avatar ms-avatar-md">
+                    <div>
+                      <div class="fw-semibold">{{ learner.get_full_name|default:learner.username }}</div>
+                      <div class="text-muted small">@{{ learner.username }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ learner.email }}</td>
+                <td class="text-nowrap">{{ learner.date_joined|date:"M j, Y" }}</td>
+                <td class="text-nowrap">{{ learner.last_login|date:"M j, Y"|default:"Never" }}</td>
+                <td class="pe-4">
+                  {% if learner.is_active %}
+                    <span class="badge text-bg-success-subtle text-success-emphasis">Active</span>
+                  {% else %}
+                    <span class="badge text-bg-secondary">Inactive</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if is_paginated %}
+        <nav class="d-flex justify-content-between align-items-center px-4 py-3 border-top" aria-label="Learner pages">
+          <span class="text-muted small">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+          <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item"><a class="page-link" href="{% querystring page=page_obj.previous_page_number %}#engagement">Previous</a></li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+            {% if page_obj.has_next %}
+              <li class="page-item"><a class="page-link" href="{% querystring page=page_obj.next_page_number %}#engagement">Next</a></li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="p-4 text-center text-muted">
+        <i class="bi bi-people fs-2 d-block mb-2 text-primary"></i>
+        {% if q %}No learners match &ldquo;{{ q }}&rdquo;.{% else %}No learners have registered yet.{% endif %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

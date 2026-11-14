@@ -142,6 +142,10 @@ body {
 }
 .page-link { color: var(--ms-primary); }
 
+/* Gram reaction badges: crystal violet (positive) / safranin (negative) */
+.ms-badge-gram-pos { background: var(--ms-gram-pos-soft); color: var(--ms-gram-pos); }
+.ms-badge-gram-neg { background: var(--ms-gram-neg-soft); color: var(--ms-gram-neg); }
+
 .ms-eyebrow {
   font-size: .75rem;
   font-weight: 600;

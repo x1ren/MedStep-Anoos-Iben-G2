@@ -32,10 +32,12 @@ ends the session and redirects to the login page.
 **Role-based dashboards** — after login each user is redirected to their own
 dashboard:
 
-- `/dashboard/student/` — available lab modules with protocol steps and timings,
-  practice progress.
-- `/dashboard/instructor/` — student roster (search + pagination), lab module
-  management, class performance overview.
+- `/dashboard/learner/` — **Student Playground**: quick-start practice cards,
+  available microbiology modules (protocol steps and reagent timings) and
+  personal simulation stats.
+- `/dashboard/admin/` — **Lab Management**: catalog overview (modules and
+  bacterial specimens by Gram reaction), active lab scenarios, and user
+  engagement metrics with a searchable, paginated learner list.
 
 **Strict authorization** — `@role_required` / `@learner_required` /
 `@lab_admin_required` decorators and a `RoleRequiredMixin`
@@ -54,8 +56,10 @@ changed through the form.
 
 **Change password** — requires the current password; signs out other sessions.
 
-> Practice scores, attempt tracking and the interactive simulations are
-> **Phase 2**. Dashboard sections for them are in place and show empty states.
+> The lab catalog (modules, specimens, scenarios) is static data in
+> [dashboard/catalog.py](dashboard/catalog.py) for Increment 1. Catalog editing,
+> attempt tracking and the interactive simulations come in later increments;
+> their dashboard sections are in place and show empty states.
 
 ---
 
@@ -81,7 +85,7 @@ pip install -r requirements.txt
 copy .env.example .env           # macOS/Linux: cp .env.example .env
 #   then edit .env — see "Configuration" below
 
-# 5. Verify, create tables, create an instructor/admin account
+# 5. Verify, create tables, create a Lab Admin account
 python manage.py check
 python manage.py migrate
 python manage.py createsuperuser   # superusers get the Lab Admin role
@@ -126,9 +130,9 @@ database — SQLite is intentionally not supported.
 python manage.py test
 ```
 
-102 tests cover the user model, registration, login/logout, access control,
-both dashboards, navigation, profile view/edit, photo uploads and password
-change. Django creates a temporary `test_<DB_NAME>` database on Supabase for the
+111 tests cover the user model and role migration, registration,
+login/logout, access control, both dashboards and the lab catalog, navigation,
+profile view/edit, photo uploads and password change. Django creates a temporary `test_<DB_NAME>` database on Supabase for the
 run and deletes it afterwards.
 
 ---
@@ -145,8 +149,8 @@ run and deletes it afterwards.
 | `/accounts/profile/edit/` | signed in | Edit own profile & photo |
 | `/accounts/password/change/` | signed in | Change own password |
 | `/dashboard/` | signed in | Redirects to the user's role dashboard |
-| `/dashboard/student/` | students only | Student dashboard |
-| `/dashboard/instructor/` | instructors only | Instructor dashboard |
+| `/dashboard/learner/` | learners only | Student Playground dashboard |
+| `/dashboard/admin/` | Lab Admins only | Lab Management dashboard |
 | `/admin/` | staff | Django admin (user management) |
 
 ---
@@ -164,8 +168,8 @@ MedStep/
 │   ├── admin.py              # User admin with role filter
 │   └── tests/                # Model, auth, access-control, profile, navbar tests
 ├── dashboard/                # Role-based dashboards
-│   ├── modules.py            # Gram Staining & Quadrant Streak catalogue
-│   ├── views.py              # Role redirect, student & instructor dashboards
+│   ├── catalog.py            # Modules, specimens, scenarios, quick-start cards
+│   ├── views.py              # Role redirect, learner & Lab Admin dashboards
 │   └── tests.py
 ├── medstep/                  # Project settings & root URLs
 ├── templates/                # base layout, partials, accounts/, dashboard/, 403

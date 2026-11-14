@@ -15,24 +15,25 @@
         <ul class="navbar-nav me-auto ms-lg-4 gap-lg-1">
           {% if user.is_lab_admin %}
             <li class="nav-item">
-              <a class="nav-link{% if url_name == 'instructor' %} active{% endif %}" href="{% url 'dashboard:instructor' %}">
-                <i class="bi bi-speedometer2 me-1"></i>Dashboard
+              <a class="nav-link{% if app == 'dashboard' and url_name == 'admin' %} active{% endif %}" href="{% url 'dashboard:admin' %}">
+                <i class="bi bi-speedometer2 me-1"></i>Lab Management
               </a>
             </li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:instructor' %}#roster"><i class="bi bi-people me-1"></i>Student roster</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:instructor' %}#modules"><i class="bi bi-sliders me-1"></i>Lab modules</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:instructor' %}#performance"><i class="bi bi-graph-up me-1"></i>Performance</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:admin' %}#catalog"><i class="bi bi-collection me-1"></i>Catalog</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:admin' %}#scenarios"><i class="bi bi-sliders me-1"></i>Scenarios</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:admin' %}#engagement"><i class="bi bi-graph-up me-1"></i>Engagement</a></li>
             {% if user.is_staff %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'admin:index' %}"><i class="bi bi-gear me-1"></i>Admin</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'admin:index' %}"><i class="bi bi-gear me-1"></i>Admin site</a></li>
             {% endif %}
           {% else %}
             <li class="nav-item">
-              <a class="nav-link{% if url_name == 'student' %} active{% endif %}" href="{% url 'dashboard:student' %}">
-                <i class="bi bi-speedometer2 me-1"></i>Dashboard
+              <a class="nav-link{% if app == 'dashboard' and url_name == 'learner' %} active{% endif %}" href="{% url 'dashboard:learner' %}">
+                <i class="bi bi-speedometer2 me-1"></i>Playground
               </a>
             </li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:student' %}#modules"><i class="bi bi-eyedropper me-1"></i>Lab modules</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:student' %}#progress"><i class="bi bi-bar-chart me-1"></i>My progress</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:learner' %}#quick-start"><i class="bi bi-lightning-charge me-1"></i>Quick start</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:learner' %}#modules"><i class="bi bi-eyedropper me-1"></i>Lab modules</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:learner' %}#stats"><i class="bi bi-bar-chart me-1"></i>My stats</a></li>
           {% endif %}
         </ul>
 
