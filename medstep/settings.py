@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # MedStep apps
+    'accounts.apps.AccountsConfig',
 ]
 
 MIDDLEWARE = [
@@ -136,6 +138,12 @@ DATABASES['default']['OPTIONS'].setdefault('connect_timeout', 10)
 
 
 # ---------------------------------------------------------------
+# Authentication — custom user model with student/instructor roles
+# ---------------------------------------------------------------
+AUTH_USER_MODEL = 'accounts.User'
+
+
+# ---------------------------------------------------------------
 # Password validation (Django hashes passwords with PBKDF2 by default)
 # ---------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
@@ -157,9 +165,12 @@ USE_TZ = True
 
 
 # ---------------------------------------------------------------
-# Static files
+# Static & media files (media = user uploads such as profile photos)
 # ---------------------------------------------------------------
 STATIC_URL = 'static/'
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
