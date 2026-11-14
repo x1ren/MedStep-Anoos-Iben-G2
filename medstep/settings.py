@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # MedStep apps
     'accounts.apps.AccountsConfig',
+    'dashboard.apps.DashboardConfig',
 ]
 
 MIDDLEWARE = [
@@ -146,7 +147,7 @@ AUTH_USER_MODEL = 'accounts.User'
 AUTHENTICATION_BACKENDS = ['accounts.backends.EmailOrUsernameModelBackend']
 
 LOGIN_URL = 'accounts:login'            # where @login_required sends anonymous users
-LOGIN_REDIRECT_URL = 'home'             # after a successful login
+LOGIN_REDIRECT_URL = 'dashboard:home'   # after login -> role's own dashboard
 LOGOUT_REDIRECT_URL = 'accounts:login'  # after logging out
 
 # Map Django's "error" message level to Bootstrap's "danger" alert style.

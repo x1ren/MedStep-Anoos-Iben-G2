@@ -111,6 +111,9 @@ body {
 .ms-tile-streak  { background: var(--ms-agar-soft); color: var(--ms-agar); }
 .ms-tile-neg     { background: var(--ms-gram-neg-soft); color: var(--ms-gram-neg); }
 
+.ms-stat-value { font-size: 1.75rem; font-weight: 700; line-height: 1.1; }
+.progress { --bs-progress-bar-bg: var(--ms-primary); height: .5rem; }
+
 .ms-eyebrow {
   font-size: .75rem;
   font-weight: 600;
