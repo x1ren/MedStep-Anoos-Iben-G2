@@ -4,6 +4,7 @@ from pathlib import Path
 from django.contrib.auth.models import AbstractUser, UserManager as DjangoUserManager
 from django.core.validators import RegexValidator
 from django.db import models
+from django.templatetags.static import static
 
 
 def profile_photo_upload_to(instance, filename):
@@ -84,3 +85,10 @@ class User(AbstractUser):
     @property
     def is_instructor(self):
         return self.role == self.Role.INSTRUCTOR
+
+    @property
+    def avatar_url(self):
+        """Uploaded profile photo, or the default avatar if none."""
+        if self.profile_photo:
+            return self.profile_photo.url
+        return static('img/default-avatar.svg')

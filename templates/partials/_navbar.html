@@ -1,3 +1,4 @@
+{% with url_name=request.resolver_match.url_name app=request.resolver_match.app_name %}
 <nav class="navbar navbar-expand-lg navbar-dark ms-navbar">
   <div class="container">
     <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'home' %}">
@@ -9,21 +10,53 @@
     </button>
 
     <div class="collapse navbar-collapse" id="mainNav">
-      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-        <li class="nav-item">
-          <a class="nav-link{% if request.resolver_match.url_name == 'home' %} active{% endif %}" href="{% url 'home' %}">Home</a>
-        </li>
-        {% if user.is_authenticated %}
-          <li class="nav-item">
-            <a class="nav-link{% if request.resolver_match.app_name == 'dashboard' %} active{% endif %}" href="{% url 'dashboard:home' %}">Dashboard</a>
-          </li>
+      {% if user.is_authenticated %}
+        {# ----- Role-specific links ----- #}
+        <ul class="navbar-nav me-auto ms-lg-4 gap-lg-1">
+          {% if user.is_instructor %}
+            <li class="nav-item">
+              <a class="nav-link{% if url_name == 'instructor' %} active{% endif %}" href="{% url 'dashboard:instructor' %}">
+                <i class="bi bi-speedometer2 me-1"></i>Dashboard
+              </a>
+            </li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:instructor' %}#roster"><i class="bi bi-people me-1"></i>Student roster</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:instructor' %}#modules"><i class="bi bi-sliders me-1"></i>Lab modules</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:instructor' %}#performance"><i class="bi bi-graph-up me-1"></i>Performance</a></li>
+            {% if user.is_staff %}
+              <li class="nav-item"><a class="nav-link" href="{% url 'admin:index' %}"><i class="bi bi-gear me-1"></i>Admin</a></li>
+            {% endif %}
+          {% else %}
+            <li class="nav-item">
+              <a class="nav-link{% if url_name == 'student' %} active{% endif %}" href="{% url 'dashboard:student' %}">
+                <i class="bi bi-speedometer2 me-1"></i>Dashboard
+              </a>
+            </li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:student' %}#modules"><i class="bi bi-eyedropper me-1"></i>Lab modules</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:student' %}#progress"><i class="bi bi-bar-chart me-1"></i>My progress</a></li>
+          {% endif %}
+        </ul>
+
+        {# ----- Account menu ----- #}
+        <ul class="navbar-nav ms-auto align-items-lg-center">
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button"
-               data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-person-circle fs-5"></i>
+            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2{% if app == 'accounts' %} active{% endif %}"
+               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <img src="{{ user.avatar_url }}" alt="" class="ms-avatar ms-avatar-sm">
               <span>{{ user.get_full_name|default:user.username }}</span>
+              <span class="badge ms-role-badge {% if user.is_instructor %}text-bg-warning{% else %}text-bg-info{% endif %}">
+                {% if user.is_instructor %}Instructor{% else %}Student{% endif %}
+              </span>
             </a>
-            <ul class="dropdown-menu dropdown-menu-end">
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              <li class="px-3 py-2">
+                <div class="fw-semibold">{{ user.get_full_name|default:user.username }}</div>
+                <div class="text-muted small">{{ user.email }}</div>
+                <div class="text-muted small">{{ user.get_role_display }}</div>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>My profile</a></li>
+              <li><a class="dropdown-item" href="{% url 'accounts:profile_edit' %}"><i class="bi bi-pencil-square me-2"></i>Edit profile</a></li>
+              <li><hr class="dropdown-divider"></li>
               <li>
                 {# Logout must be a POST (with CSRF token), never a plain link. #}
                 <form method="post" action="{% url 'accounts:logout' %}">
@@ -35,15 +68,21 @@
               </li>
             </ul>
           </li>
-        {% else %}
+        </ul>
+      {% else %}
+        <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
           <li class="nav-item">
-            <a class="nav-link{% if request.resolver_match.url_name == 'login' %} active{% endif %}" href="{% url 'accounts:login' %}">Sign in</a>
+            <a class="nav-link{% if url_name == 'home' %} active{% endif %}" href="{% url 'home' %}">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link{% if url_name == 'login' %} active{% endif %}" href="{% url 'accounts:login' %}">Sign in</a>
           </li>
           <li class="nav-item">
             <a class="btn btn-primary btn-sm px-3" href="{% url 'accounts:register' %}">Create account</a>
           </li>
-        {% endif %}
-      </ul>
+        </ul>
+      {% endif %}
     </div>
   </div>
 </nav>
+{% endwith %}

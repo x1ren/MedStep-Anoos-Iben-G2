@@ -74,6 +74,24 @@ body {
 .ms-navbar .nav-link:hover,
 .ms-navbar .nav-link.active { color: #fff; }
 
+.ms-role-badge {
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* ---------- Avatars ---------- */
+.ms-avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--ms-primary-soft);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--ms-border);
+}
+.ms-avatar-sm { width: 32px; height: 32px; }
+.ms-avatar-md { width: 40px; height: 40px; }
+.ms-avatar-lg { width: 128px; height: 128px; }
+
 .ms-logo {
   display: inline-grid;
   place-items: center;

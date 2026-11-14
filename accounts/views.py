@@ -1,10 +1,12 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
-from .forms import LoginForm, RegistrationForm
+from .forms import LoginForm, ProfileForm, RegistrationForm
+from .models import User
 
 
 @require_http_methods(['GET', 'POST'])
@@ -56,3 +58,38 @@ class MedStepLogoutView(auth_views.LogoutView):
         response = super().post(request, *args, **kwargs)
         messages.info(request, 'You have been signed out. See you at the bench!')
         return response
+
+
+# ---------------------------------------------------------------------------
+# Profile — always the logged-in user's own record (request.user).
+# There is deliberately no <pk>/<username> in these URLs, so another
+# user's profile can never be opened or edited by changing the URL.
+# ---------------------------------------------------------------------------
+
+@login_required
+def profile(request):
+    return render(request, 'accounts/profile.html')
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def profile_edit(request):
+    # Edit a fresh copy so a failed submission doesn't leave half-applied
+    # changes on request.user (which the navbar renders).
+    user = User.objects.get(pk=request.user.pk)
+    old_photo_name = user.profile_photo.name
+
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            user = form.save()
+            # Delete the previous file when the photo was replaced or removed.
+            if old_photo_name and old_photo_name != user.profile_photo.name:
+                user.profile_photo.storage.delete(old_photo_name)
+            messages.success(request, 'Your profile has been updated.')
+            return redirect('accounts:profile')
+        messages.error(request, 'Your profile was not saved. Please fix the highlighted errors.')
+    else:
+        form = ProfileForm(instance=user)
+
+    return render(request, 'accounts/profile_edit.html', {'form': form})

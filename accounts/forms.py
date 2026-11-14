@@ -1,7 +1,12 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.core.files.uploadedfile import UploadedFile
+from django.core.validators import FileExtensionValidator
 
 from .models import User
+
+MAX_PHOTO_SIZE_MB = 2
+ALLOWED_PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
 
 
 class BootstrapFormMixin:
@@ -98,3 +103,56 @@ class LoginForm(BootstrapFormMixin, AuthenticationForm):
         ),
         'inactive': 'This account has been deactivated. Please contact your instructor.',
     }
+
+
+class ProfileForm(BootstrapFormMixin, forms.ModelForm):
+    """Lets a user edit *their own* details and profile photo.
+
+    `username` and `role` are deliberately not editable here, so they
+    cannot be changed by tampering with the submitted form.
+    """
+
+    first_name = forms.CharField(max_length=150, required=True, label='First name')
+    last_name = forms.CharField(max_length=150, required=True, label='Last name')
+    email = forms.EmailField(required=True, label='Email address')
+    profile_photo = forms.ImageField(
+        required=False,
+        label='Upload new photo',
+        widget=forms.FileInput(attrs={'accept': 'image/jpeg,image/png,image/webp'}),
+        validators=[FileExtensionValidator(ALLOWED_PHOTO_EXTENSIONS)],
+        help_text=f'JPG, PNG or WEBP, up to {MAX_PHOTO_SIZE_MB} MB.',
+    )
+    remove_photo = forms.BooleanField(required=False, label='Remove current photo')
+
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name', 'email', 'contact_number', 'profile_photo')
+
+    def clean_first_name(self):
+        return self.cleaned_data['first_name'].strip()
+
+    def clean_last_name(self):
+        return self.cleaned_data['last_name'].strip()
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].strip().lower()
+        taken = User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk)
+        if taken.exists():
+            raise forms.ValidationError('An account with this email already exists.')
+        return email
+
+    def clean_profile_photo(self):
+        photo = self.cleaned_data.get('profile_photo')
+        # Only newly uploaded files need checking; an unchanged photo is fine.
+        if isinstance(photo, UploadedFile) and photo.size > MAX_PHOTO_SIZE_MB * 1024 * 1024:
+            raise forms.ValidationError(f'Photo must be {MAX_PHOTO_SIZE_MB} MB or smaller.')
+        return photo
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        new_upload = isinstance(self.cleaned_data.get('profile_photo'), UploadedFile)
+        if self.cleaned_data.get('remove_photo') and not new_upload:
+            user.profile_photo = ''
+        if commit:
+            user.save()
+        return user

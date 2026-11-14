@@ -130,8 +130,9 @@ class InstructorDashboardTests(TestCase):
         self.client.force_login(self.instructor)
         response = self.client.get(self.url)
         self.assertEqual(list(response.context['students']), [self.student])
-        self.assertContains(response, 'stud@example.com')
-        self.assertNotContains(response, 'inst@example.com')
+        # Roster rows render "@username"; the instructor must not have a row.
+        self.assertContains(response, '>@stud</div>')
+        self.assertNotContains(response, '>@inst</div>')
 
     def test_stats(self):
         User.objects.create_user('old', 'old@example.com', PASSWORD)
