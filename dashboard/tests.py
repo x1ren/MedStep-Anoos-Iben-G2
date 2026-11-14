@@ -17,7 +17,7 @@ class StudentDashboardTests(TestCase):
             'stud', 'stud@example.com', PASSWORD, first_name='Lea'
         )
         cls.instructor = User.objects.create_user(
-            'inst', 'inst@example.com', PASSWORD, role=User.Role.INSTRUCTOR
+            'inst', 'inst@example.com', PASSWORD, role=User.Role.ADMIN
         )
 
     def test_anonymous_redirected_to_login(self):
@@ -66,14 +66,14 @@ class DashboardRedirectTests(TestCase):
 
     def test_dashboard_home_sends_instructor_to_instructor_dashboard(self):
         instructor = User.objects.create_user(
-            'inst', 'inst@example.com', PASSWORD, role=User.Role.INSTRUCTOR
+            'inst', 'inst@example.com', PASSWORD, role=User.Role.ADMIN
         )
         self.client.force_login(instructor)
         response = self.client.get(reverse('dashboard:home'))
         self.assertRedirects(response, reverse('dashboard:instructor'))
 
     def test_instructor_login_lands_on_instructor_dashboard(self):
-        User.objects.create_user('inst', 'inst@example.com', PASSWORD, role=User.Role.INSTRUCTOR)
+        User.objects.create_user('inst', 'inst@example.com', PASSWORD, role=User.Role.ADMIN)
         response = self.client.post(
             reverse('accounts:login'),
             {'username': 'inst', 'password': PASSWORD},
@@ -98,7 +98,7 @@ class InstructorDashboardTests(TestCase):
     def setUpTestData(cls):
         cls.instructor = User.objects.create_user(
             'inst', 'inst@example.com', PASSWORD,
-            first_name='Maria', last_name='Cruz', role=User.Role.INSTRUCTOR,
+            first_name='Maria', last_name='Cruz', role=User.Role.ADMIN,
         )
         cls.student = User.objects.create_user(
             'stud', 'stud@example.com', PASSWORD, first_name='Lea', last_name='Santos'

@@ -14,13 +14,13 @@ simulations will be built on.
 | **Framework** | Django 5.2 (backend + server-rendered templates) |
 | **Database** | Supabase PostgreSQL (via `psycopg` 3) |
 | **UI** | Bootstrap 5.3 + Bootstrap Icons, custom clinical theme |
-| **Roles** | `student` and `instructor` (Instructor / Lab Admin) |
+| **Roles** | `learner` (Student Learner) and `admin` (Lab Admin / Content Curator) |
 
 ---
 
 ## Phase 1 features
 
-**Registration** — public sign-up always creates a *student* account. Validates
+**Registration** — public sign-up always creates a *learner* account. Validates
 required fields, email format, unique username, unique email (case-insensitive),
 matching password confirmation and Django's password-strength rules. Passwords
 are hashed by Django (PBKDF2); plain text is never stored.
@@ -37,11 +37,11 @@ dashboard:
 - `/dashboard/instructor/` — student roster (search + pagination), lab module
   management, class performance overview.
 
-**Strict authorization** — `@role_required` / `@student_required` /
-`@instructor_required` decorators and a `RoleRequiredMixin`
+**Strict authorization** — `@role_required` / `@learner_required` /
+`@lab_admin_required` decorators and a `RoleRequiredMixin`
 ([accounts/decorators.py](accounts/decorators.py)). Anonymous users are sent to
 login; a user with the wrong role gets **403 Forbidden** (custom page). This
-blocks students from instructor pages and instructors from student pages.
+blocks learners from Lab Admin pages and Lab Admins from learner pages.
 
 **Role-aware navigation** — the navbar shows different links per role, a role
 badge, and an account menu (profile, edit profile, change password, sign out).
@@ -84,15 +84,15 @@ copy .env.example .env           # macOS/Linux: cp .env.example .env
 # 5. Verify, create tables, create an instructor/admin account
 python manage.py check
 python manage.py migrate
-python manage.py createsuperuser   # superusers get the instructor role
+python manage.py createsuperuser   # superusers get the Lab Admin role
 
 # 6. Run
 python manage.py runserver
 ```
 
-Open <http://127.0.0.1:8000/>. Register a student account from the site; sign in
-with the superuser to see the instructor dashboard. More instructor accounts can
-be created at `/admin/` → Users → Add user (choose role *Instructor*).
+Open <http://127.0.0.1:8000/>. Register a learner account from the site; sign in
+with the superuser to see the Lab Admin dashboard. More Lab Admin accounts can
+be created at `/admin/` → Users → Add user (choose role *Lab Admin / Content Curator*).
 
 ---
 
@@ -160,7 +160,7 @@ MedStep/
 │   ├── forms.py              # Registration, login, profile, password-change forms
 │   ├── views.py              # Register, login/logout, profile, password change
 │   ├── backends.py           # Login with username or email
-│   ├── decorators.py         # role_required, student/instructor_required, RoleRequiredMixin
+│   ├── decorators.py         # role_required, learner/lab_admin_required, RoleRequiredMixin
 │   ├── admin.py              # User admin with role filter
 │   └── tests/                # Model, auth, access-control, profile, navbar tests
 ├── dashboard/                # Role-based dashboards

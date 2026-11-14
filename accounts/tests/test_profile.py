@@ -73,7 +73,7 @@ class ProfileViewTests(ProfileTestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/profile.html')
-        for text in ('Ana Reyes', '@ana', 'ana@example.com', 'Student', 'Not provided'):
+        for text in ('Ana Reyes', '@ana', 'ana@example.com', 'Student Learner', 'Not provided'):
             self.assertContains(response, text)
 
     def test_never_shows_another_users_details(self):
@@ -146,10 +146,10 @@ class ProfileEditTests(ProfileTestCase):
 
     def test_role_username_and_staff_flags_cannot_be_changed(self):
         self.client.post(self.url, edit_payload(
-            role='instructor', username='hacker', is_staff='on', is_superuser='on',
+            role='admin', username='hacker', is_staff='on', is_superuser='on',
         ))
         self.user.refresh_from_db()
-        self.assertEqual(self.user.role, User.Role.STUDENT)
+        self.assertEqual(self.user.role, User.Role.LEARNER)
         self.assertEqual(self.user.username, 'ana')
         self.assertFalse(self.user.is_staff)
         self.assertFalse(self.user.is_superuser)

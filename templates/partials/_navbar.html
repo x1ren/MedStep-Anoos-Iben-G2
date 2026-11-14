@@ -13,7 +13,7 @@
       {% if user.is_authenticated %}
         {# ----- Role-specific links ----- #}
         <ul class="navbar-nav me-auto ms-lg-4 gap-lg-1">
-          {% if user.is_instructor %}
+          {% if user.is_lab_admin %}
             <li class="nav-item">
               <a class="nav-link{% if url_name == 'instructor' %} active{% endif %}" href="{% url 'dashboard:instructor' %}">
                 <i class="bi bi-speedometer2 me-1"></i>Dashboard
@@ -43,8 +43,8 @@
                href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <img src="{{ user.avatar_url }}" alt="" class="ms-avatar ms-avatar-sm">
               <span>{{ user.get_full_name|default:user.username }}</span>
-              <span class="badge ms-role-badge {% if user.is_instructor %}text-bg-warning{% else %}text-bg-info{% endif %}">
-                {% if user.is_instructor %}Instructor{% else %}Student{% endif %}
+              <span class="badge ms-role-badge {% if user.is_lab_admin %}text-bg-warning{% else %}text-bg-info{% endif %}">
+                {% if user.is_lab_admin %}Lab Admin{% else %}Learner{% endif %}
               </span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">

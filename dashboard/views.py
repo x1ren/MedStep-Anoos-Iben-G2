@@ -6,7 +6,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import ListView
 
-from accounts.decorators import RoleRequiredMixin, student_required
+from accounts.decorators import RoleRequiredMixin, learner_required
 from accounts.models import User
 
 from .modules import LAB_MODULES
@@ -15,12 +15,12 @@ from .modules import LAB_MODULES
 @login_required
 def dashboard_home(request):
     """Send each user to the dashboard for their role (used after login)."""
-    if request.user.is_instructor:
+    if request.user.is_lab_admin:
         return redirect('dashboard:instructor')
     return redirect('dashboard:student')
 
 
-@student_required
+@learner_required
 def student_dashboard(request):
     # Practice tracking is Phase 2; every module starts at 0% for now.
     modules = [{**module, 'progress': 0, 'attempts': 0} for module in LAB_MODULES]
@@ -38,7 +38,7 @@ def student_dashboard(request):
 class InstructorDashboardView(RoleRequiredMixin, ListView):
     """Instructor home: student roster, lab modules and performance overview."""
 
-    allowed_roles = (User.Role.INSTRUCTOR,)
+    allowed_roles = (User.Role.ADMIN,)
     template_name = 'dashboard/instructor.html'
     context_object_name = 'students'
     paginate_by = 10
@@ -47,7 +47,7 @@ class InstructorDashboardView(RoleRequiredMixin, ListView):
         return self.request.GET.get('q', '').strip()
 
     def get_queryset(self):
-        students = User.objects.filter(role=User.Role.STUDENT).order_by(
+        students = User.objects.filter(role=User.Role.LEARNER).order_by(
             'last_name', 'first_name', 'username'
         )
         q = self.get_search_query()
@@ -63,7 +63,7 @@ class InstructorDashboardView(RoleRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         now = timezone.now()
-        all_students = User.objects.filter(role=User.Role.STUDENT)
+        all_students = User.objects.filter(role=User.Role.LEARNER)
         context.update({
             'q': self.get_search_query(),
             'modules': LAB_MODULES,

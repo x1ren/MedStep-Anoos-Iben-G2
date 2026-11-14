@@ -11,7 +11,7 @@ class NavbarTests(TestCase):
     def setUpTestData(cls):
         cls.student = User.objects.create_user('stud', 'stud@example.com', PASSWORD)
         cls.instructor = User.objects.create_user(
-            'inst', 'inst@example.com', PASSWORD, role=User.Role.INSTRUCTOR
+            'inst', 'inst@example.com', PASSWORD, role=User.Role.ADMIN
         )
 
     def nav_html(self, user=None):

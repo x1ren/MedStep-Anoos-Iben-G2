@@ -2,24 +2,24 @@
 
 Function-based views::
 
-    @role_required(User.Role.INSTRUCTOR)
-    def roster(request): ...
+    @role_required(User.Role.ADMIN)
+    def catalog(request): ...
 
-    @student_required
+    @learner_required
     def practice(request): ...
 
 Class-based views::
 
-    class RosterView(RoleRequiredMixin, TemplateView):
-        allowed_roles = (User.Role.INSTRUCTOR,)
+    class CatalogView(RoleRequiredMixin, TemplateView):
+        allowed_roles = (User.Role.ADMIN,)
 
 Behaviour:
   * Not logged in  -> redirect to LOGIN_URL (with ?next=...).
   * Wrong role     -> 403 Forbidden, rendered by templates/403.html.
 
-This blocks privilege escalation through URL manipulation: a student
-typing an instructor URL (vertical) or an instructor opening a
-student-only page (horizontal) is refused on the server side.
+This blocks privilege escalation through URL manipulation: a learner
+typing a Lab Admin URL (vertical) or a Lab Admin opening a
+learner-only page (horizontal) is refused on the server side.
 """
 
 from functools import wraps
@@ -60,8 +60,8 @@ def role_required(*roles):
     return decorator
 
 
-student_required = role_required(User.Role.STUDENT)
-instructor_required = role_required(User.Role.INSTRUCTOR)
+learner_required = role_required(User.Role.LEARNER)
+lab_admin_required = role_required(User.Role.ADMIN)
 
 
 class RoleRequiredMixin(LoginRequiredMixin):

@@ -6,16 +6,16 @@ from accounts.models import User
 
 
 class UserModelTests(TestCase):
-    def test_new_users_default_to_student(self):
+    def test_new_users_default_to_learner(self):
         user = User.objects.create_user('ana', 'ana@example.com', 'pw-Test-123')
-        self.assertEqual(user.role, User.Role.STUDENT)
-        self.assertTrue(user.is_student)
-        self.assertFalse(user.is_instructor)
+        self.assertEqual(user.role, User.Role.LEARNER)
+        self.assertTrue(user.is_learner)
+        self.assertFalse(user.is_lab_admin)
 
-    def test_superuser_is_instructor(self):
+    def test_superuser_is_lab_admin(self):
         admin = User.objects.create_superuser('admin', 'admin@example.com', 'pw-Test-123')
-        self.assertEqual(admin.role, User.Role.INSTRUCTOR)
-        self.assertTrue(admin.is_instructor)
+        self.assertEqual(admin.role, User.Role.ADMIN)
+        self.assertTrue(admin.is_lab_admin)
 
     def test_email_is_stored_lowercase(self):
         user = User.objects.create_user('ana', '  Ana.Reyes@Example.COM ', 'pw-Test-123')

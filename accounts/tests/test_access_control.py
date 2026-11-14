@@ -15,7 +15,7 @@ class RoleAccessTests(TestCase):
     def setUpTestData(cls):
         cls.student = User.objects.create_user('stud', 'stud@example.com', PASSWORD)
         cls.instructor = User.objects.create_user(
-            'inst', 'inst@example.com', PASSWORD, role=User.Role.INSTRUCTOR
+            'inst', 'inst@example.com', PASSWORD, role=User.Role.ADMIN
         )
 
     def assert_redirects_to_login(self, url):
@@ -66,14 +66,14 @@ class RoleAccessTests(TestCase):
         self.client.force_login(self.student)
         response = self.client.get('/t/instructor/')
         self.assertContains(
-            response, 'restricted to Instructor / Lab Admin accounts', status_code=403
+            response, 'restricted to Lab Admin / Content Curator accounts', status_code=403
         )
         self.assertContains(response, 'stud', status_code=403)
 
     def test_role_change_takes_effect_immediately(self):
         self.client.force_login(self.student)
         self.assertEqual(self.client.get('/t/instructor/').status_code, 403)
-        self.student.role = User.Role.INSTRUCTOR
+        self.student.role = User.Role.ADMIN
         self.student.save()
         self.assertEqual(self.client.get('/t/instructor/').status_code, 200)
 

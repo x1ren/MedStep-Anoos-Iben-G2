@@ -38,7 +38,7 @@ class BootstrapFormMixin:
 
 
 class RegistrationForm(BootstrapFormMixin, UserCreationForm):
-    """Public sign-up form. Always creates a *student* account.
+    """Public sign-up form. Always creates a *learner* account.
 
     Inherited from UserCreationForm: unique username check, password1/password2
     match check, AUTH_PASSWORD_VALIDATORS, and hashing via set_password().
@@ -80,8 +80,8 @@ class RegistrationForm(BootstrapFormMixin, UserCreationForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        # Never trust the client for the role: public sign-ups are students.
-        user.role = User.Role.STUDENT
+        # Never trust the client for the role: public sign-ups are learners.
+        user.role = User.Role.LEARNER
         if commit:
             user.save()
         return user

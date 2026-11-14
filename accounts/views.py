@@ -22,7 +22,7 @@ def register(request):
             user = form.save()
             messages.success(
                 request,
-                f'Welcome to MedStep, {user.first_name}! Your student account was '
+                f'Welcome to MedStep, {user.first_name}! Your learner account was '
                 'created successfully. Please sign in to continue.',
             )
             return redirect('accounts:login')

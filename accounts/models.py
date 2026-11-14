@@ -25,10 +25,10 @@ contact_number_validator = RegexValidator(
 
 
 class UserManager(DjangoUserManager):
-    """Superusers created with `createsuperuser` are lab admins (instructors)."""
+    """Superusers created with `createsuperuser` get the Lab Admin role."""
 
     def create_superuser(self, username, email=None, password=None, **extra_fields):
-        extra_fields.setdefault('role', User.Role.INSTRUCTOR)
+        extra_fields.setdefault('role', User.Role.ADMIN)
         return super().create_superuser(username, email, password, **extra_fields)
 
 
@@ -36,8 +36,8 @@ class User(AbstractUser):
     """MedStep user with a role, unique email, contact number and photo."""
 
     class Role(models.TextChoices):
-        STUDENT = 'student', 'Student'
-        INSTRUCTOR = 'instructor', 'Instructor / Lab Admin'
+        LEARNER = 'learner', 'Student Learner'
+        ADMIN = 'admin', 'Lab Admin / Content Curator'
 
     email = models.EmailField(
         'email address',
@@ -47,7 +47,7 @@ class User(AbstractUser):
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
-        default=Role.STUDENT,
+        default=Role.LEARNER,
         db_index=True,
     )
     contact_number = models.CharField(
@@ -79,12 +79,13 @@ class User(AbstractUser):
         super().save(*args, **kwargs)
 
     @property
-    def is_student(self):
-        return self.role == self.Role.STUDENT
+    def is_learner(self):
+        return self.role == self.Role.LEARNER
 
     @property
-    def is_instructor(self):
-        return self.role == self.Role.INSTRUCTOR
+    def is_lab_admin(self):
+        # Named "lab_admin" to avoid confusion with Django's is_staff/is_superuser.
+        return self.role == self.Role.ADMIN
 
     @property
     def avatar_url(self):

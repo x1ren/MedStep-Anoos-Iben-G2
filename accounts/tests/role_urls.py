@@ -6,31 +6,31 @@ from django.views import View
 
 from accounts.decorators import (
     RoleRequiredMixin,
-    instructor_required,
+    lab_admin_required,
+    learner_required,
     role_required,
-    student_required,
 )
 from accounts.models import User
 from medstep.urls import urlpatterns as project_urlpatterns
 
 
-@student_required
+@learner_required
 def student_only(request):
     return HttpResponse('student area')
 
 
-@instructor_required
+@lab_admin_required
 def instructor_only(request):
     return HttpResponse('instructor area')
 
 
-@role_required(User.Role.STUDENT, User.Role.INSTRUCTOR)
+@role_required(User.Role.LEARNER, User.Role.ADMIN)
 def any_role(request):
     return HttpResponse('shared area')
 
 
 class InstructorOnlyView(RoleRequiredMixin, View):
-    allowed_roles = (User.Role.INSTRUCTOR,)
+    allowed_roles = (User.Role.ADMIN,)
 
     def get(self, request):
         return HttpResponse('instructor cbv')

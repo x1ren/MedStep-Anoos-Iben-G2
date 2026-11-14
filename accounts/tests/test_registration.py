@@ -39,7 +39,7 @@ class RegistrationTests(TestCase):
         self.assertRedirects(response, reverse('accounts:login'))
 
         user = User.objects.get(username='anareyes')
-        self.assertEqual(user.role, User.Role.STUDENT)
+        self.assertEqual(user.role, User.Role.LEARNER)
         self.assertEqual(user.email, 'ana.reyes@example.com')
         self.assertEqual(user.contact_number, '+63 912 345 6789')
         self.assertNotEqual(user.password, STRONG_PASSWORD)
@@ -51,8 +51,8 @@ class RegistrationTests(TestCase):
         self.assertTrue(User.objects.filter(username='anareyes').exists())
 
     def test_role_cannot_be_escalated_via_post(self):
-        self.client.post(self.url, valid_payload(role='instructor'))
-        self.assertEqual(User.objects.get(username='anareyes').role, User.Role.STUDENT)
+        self.client.post(self.url, valid_payload(role='admin'))
+        self.assertEqual(User.objects.get(username='anareyes').role, User.Role.LEARNER)
 
     def test_required_fields(self):
         response = self.client.post(self.url, {})
