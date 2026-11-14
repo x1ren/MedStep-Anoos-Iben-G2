@@ -1,0 +1,7 @@
+{% comment %}Form-wide errors (not tied to a single field), e.g. invalid login.{% endcomment %}
+{% if form.non_field_errors %}
+  <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
+    <i class="bi bi-exclamation-octagon-fill"></i>
+    <div>{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}</div>
+  </div>
+{% endif %}

@@ -8,11 +8,14 @@
     <div class="col-lg-7">
       <p class="ms-eyebrow text-white-50 mb-2">Allied health lab simulator</p>
       <h1 class="display-5 fw-bold mb-3">Practice microbiology protocols &mdash; anytime, at zero cost.</h1>
-      <p class="lead mb-0">
+      <p class="lead mb-4">
         MedStep replaces single-use consumables and rigid lab schedules with an interactive
         virtual workbench. Handle instruments, control reagent timers, and review
         dynamically generated microscopic outcomes from home.
       </p>
+      {% if not user.is_authenticated %}
+        <a href="{% url 'accounts:register' %}" class="btn btn-light btn-lg px-4">Get started free</a>
+      {% endif %}
     </div>
     <div class="col-lg-5 d-none d-lg-block text-center">
       <i class="bi bi-virus2 ms-hero-icon" aria-hidden="true"></i>

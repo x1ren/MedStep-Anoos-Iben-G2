@@ -131,5 +131,17 @@ body {
 .ms-hero .lead { color: rgba(255, 255, 255, .8); }
 .ms-hero-icon { font-size: 9rem; opacity: .85; }
 
+/* ---------- Auth pages (register / login) ---------- */
+.ms-auth-wrap { max-width: 980px; }
+.ms-auth-aside {
+  background: linear-gradient(160deg, var(--ms-primary) 0%, var(--ms-ink) 100%);
+  color: #fff;
+}
+.ms-auth-aside .small { color: rgba(255, 255, 255, .75); }
+.ms-logo-glass { background: rgba(255, 255, 255, .15); }
+@media (max-width: 767.98px) {
+  .ms-auth-aside { display: none !important; }
+}
+
 /* ---------- Footer ---------- */
 .ms-footer { color: var(--ms-muted); font-size: .875rem; }

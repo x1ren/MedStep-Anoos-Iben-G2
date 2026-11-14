@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="ms-auth-wrap mx-auto">
+  <div class="ms-card overflow-hidden">
+    <div class="row g-0">
+      <aside class="col-md-5 ms-auth-aside p-4 p-lg-5 d-flex flex-column justify-content-between">
+        <div>
+          <span class="ms-logo ms-logo-glass mb-4"><i class="bi bi-droplet-half"></i></span>
+          <h2 class="h4 fw-bold">{% block aside_title %}Your virtual microbiology bench{% endblock %}</h2>
+          <p class="small mt-3">
+            Practice Gram Staining and Quadrant Streak Plating anytime &mdash; no consumables,
+            no lab schedule, just procedural muscle memory.
+          </p>
+        </div>
+        <ul class="list-unstyled small mb-0 mt-4">
+          <li class="mb-2"><i class="bi bi-stopwatch me-2"></i>Timed reagent exposures</li>
+          <li class="mb-2"><i class="bi bi-eyedropper me-2"></i>Interactive virtual instruments</li>
+          <li><i class="bi bi-eye me-2"></i>Dynamically generated microscopy</li>
+        </ul>
+      </aside>
+      <section class="col-md-7 p-4 p-lg-5">
+        {% block auth_form %}{% endblock %}
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

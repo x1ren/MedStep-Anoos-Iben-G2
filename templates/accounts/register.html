@@ -1,0 +1,30 @@
+{% extends 'accounts/_auth_layout.html' %}
+
+{% block title %}Create account{% endblock %}
+{% block aside_title %}Start practicing in minutes{% endblock %}
+
+{% block auth_form %}
+<p class="ms-eyebrow mb-1">Student registration</p>
+<h1 class="h3 fw-bold mb-1">Create your MedStep account</h1>
+<p class="text-muted mb-4">Fields marked <span class="text-danger">*</span> are required.</p>
+
+{% include 'partials/_non_field_errors.html' %}
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row">
+    <div class="col-sm-6">{% include 'partials/_field.html' with field=form.first_name %}</div>
+    <div class="col-sm-6">{% include 'partials/_field.html' with field=form.last_name %}</div>
+  </div>
+  {% include 'partials/_field.html' with field=form.username %}
+  {% include 'partials/_field.html' with field=form.email %}
+  {% include 'partials/_field.html' with field=form.contact_number %}
+  <div class="row">
+    <div class="col-sm-6">{% include 'partials/_field.html' with field=form.password1 %}</div>
+    <div class="col-sm-6">{% include 'partials/_field.html' with field=form.password2 %}</div>
+  </div>
+  <button type="submit" class="btn btn-primary w-100 py-2 mt-2">
+    <i class="bi bi-person-plus me-1"></i> Create account
+  </button>
+</form>
+{% endblock %}
