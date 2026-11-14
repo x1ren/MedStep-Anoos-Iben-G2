@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
 from .models import User
 
@@ -76,3 +76,25 @@ class RegistrationForm(BootstrapFormMixin, UserCreationForm):
         if commit:
             user.save()
         return user
+
+
+class LoginForm(BootstrapFormMixin, AuthenticationForm):
+    """Login with username *or* email, plus an optional 'remember me'."""
+
+    username = forms.CharField(
+        label='Username or email',
+        max_length=254,
+        widget=forms.TextInput(attrs={'autofocus': True, 'autocomplete': 'username'}),
+    )
+    remember_me = forms.BooleanField(
+        required=False,
+        initial=True,
+        label='Keep me signed in on this device',
+    )
+
+    error_messages = {
+        'invalid_login': (
+            'Invalid username/email or password. Please check your credentials and try again.'
+        ),
+        'inactive': 'This account has been deactivated. Please contact your instructor.',
+    }

@@ -14,7 +14,10 @@
         dynamically generated microscopic outcomes from home.
       </p>
       {% if not user.is_authenticated %}
-        <a href="{% url 'accounts:register' %}" class="btn btn-light btn-lg px-4">Get started free</a>
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{% url 'accounts:register' %}" class="btn btn-light btn-lg px-4">Get started free</a>
+          <a href="{% url 'accounts:login' %}" class="btn btn-outline-light btn-lg px-4">Sign in</a>
+        </div>
       {% endif %}
     </div>
     <div class="col-lg-5 d-none d-lg-block text-center">

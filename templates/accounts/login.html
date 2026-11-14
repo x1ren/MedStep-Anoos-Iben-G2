@@ -1,0 +1,26 @@
+{% extends 'accounts/_auth_layout.html' %}
+
+{% block title %}Sign in{% endblock %}
+{% block aside_title %}Welcome back to the bench{% endblock %}
+
+{% block auth_form %}
+<p class="ms-eyebrow mb-1">Sign in</p>
+<h1 class="h3 fw-bold mb-4">Access your MedStep account</h1>
+
+{% include 'partials/_non_field_errors.html' %}
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ next }}">
+  {% include 'partials/_field.html' with field=form.username %}
+  {% include 'partials/_field.html' with field=form.password %}
+  {% include 'partials/_field.html' with field=form.remember_me %}
+  <button type="submit" class="btn btn-primary w-100 py-2">
+    <i class="bi bi-box-arrow-in-right me-1"></i> Sign in
+  </button>
+</form>
+
+<p class="text-center text-muted mt-4 mb-0">
+  New to MedStep? <a href="{% url 'accounts:register' %}" class="fw-semibold">Create a student account</a>
+</p>
+{% endblock %}

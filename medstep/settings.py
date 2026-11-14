@@ -143,6 +143,11 @@ DATABASES['default']['OPTIONS'].setdefault('connect_timeout', 10)
 # Authentication — custom user model with student/instructor roles
 # ---------------------------------------------------------------
 AUTH_USER_MODEL = 'accounts.User'
+AUTHENTICATION_BACKENDS = ['accounts.backends.EmailOrUsernameModelBackend']
+
+LOGIN_URL = 'accounts:login'            # where @login_required sends anonymous users
+LOGIN_REDIRECT_URL = 'home'             # after a successful login
+LOGOUT_REDIRECT_URL = 'accounts:login'  # after logging out
 
 # Map Django's "error" message level to Bootstrap's "danger" alert style.
 MESSAGE_TAGS = {message_constants.ERROR: 'danger'}
