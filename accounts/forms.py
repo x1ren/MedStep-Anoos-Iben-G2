@@ -1,5 +1,9 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordChangeForm,
+    UserCreationForm,
+)
 from django.core.files.uploadedfile import UploadedFile
 from django.core.validators import FileExtensionValidator
 
@@ -156,3 +160,8 @@ class ProfileForm(BootstrapFormMixin, forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+class StyledPasswordChangeForm(BootstrapFormMixin, PasswordChangeForm):
+    """Django's PasswordChangeForm (old password + new password twice,
+    with AUTH_PASSWORD_VALIDATORS) styled for Bootstrap."""

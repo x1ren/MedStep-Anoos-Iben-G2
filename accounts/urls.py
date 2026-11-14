@@ -10,4 +10,5 @@ urlpatterns = [
     path('logout/', views.MedStepLogoutView.as_view(), name='logout'),
     path('profile/', views.profile, name='profile'),
     path('profile/edit/', views.profile_edit, name='profile_edit'),
+    path('password/change/', views.MedStepPasswordChangeView.as_view(), name='password_change'),
 ]

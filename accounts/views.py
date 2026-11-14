@@ -3,9 +3,10 @@ from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
 
-from .forms import LoginForm, ProfileForm, RegistrationForm
+from .forms import LoginForm, ProfileForm, RegistrationForm, StyledPasswordChangeForm
 from .models import User
 
 
@@ -93,3 +94,21 @@ def profile_edit(request):
         form = ProfileForm(instance=user)
 
     return render(request, 'accounts/profile_edit.html', {'form': form})
+
+
+class MedStepPasswordChangeView(auth_views.PasswordChangeView):
+    """Change own password. Django requires login and keeps the user signed in
+    (update_session_auth_hash) while logging out their other sessions."""
+
+    template_name = 'accounts/password_change.html'
+    form_class = StyledPasswordChangeForm
+    success_url = reverse_lazy('accounts:profile')
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Your password has been changed.')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Your password was not changed. Please fix the errors below.')
+        return super().form_invalid(form)
