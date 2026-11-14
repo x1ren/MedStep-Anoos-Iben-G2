@@ -8,6 +8,7 @@ All secrets and environment-specific values are loaded from a `.env` file
 import os
 from pathlib import Path
 
+import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -95,11 +96,43 @@ WSGI_APPLICATION = 'medstep.wsgi.application'
 
 
 # ---------------------------------------------------------------
-# Database
-# Supabase PostgreSQL is configured in the next step.
-# (Intentionally empty — MedStep does not use SQLite.)
+# Database — Supabase PostgreSQL (SQLite is intentionally NOT used)
+#
+# DATABASE_URL takes precedence; otherwise DB_NAME / DB_USER /
+# DB_PASSWORD / DB_HOST / DB_PORT are used.
 # ---------------------------------------------------------------
-DATABASES = {}
+DB_SSLMODE = env_str('DB_SSLMODE', 'require')
+DB_CONN_MAX_AGE = int(env_str('DB_CONN_MAX_AGE', '60'))
+
+if env_str('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.parse(
+            env_str('DATABASE_URL'),
+            conn_max_age=DB_CONN_MAX_AGE,
+            conn_health_checks=True,
+        )
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env_str('DB_NAME', required=True),
+            'USER': env_str('DB_USER', required=True),
+            'PASSWORD': env_str('DB_PASSWORD', required=True),
+            'HOST': env_str('DB_HOST', required=True),
+            'PORT': env_str('DB_PORT', '5432'),
+            'CONN_MAX_AGE': DB_CONN_MAX_AGE,
+            'CONN_HEALTH_CHECKS': True,
+        }
+    }
+
+if DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
+    raise ImproperlyConfigured('MedStep must run on PostgreSQL (Supabase).')
+
+# Supabase only accepts SSL connections; fail fast if the host is unreachable.
+DATABASES['default'].setdefault('OPTIONS', {})
+DATABASES['default']['OPTIONS'].setdefault('sslmode', DB_SSLMODE)
+DATABASES['default']['OPTIONS'].setdefault('connect_timeout', 10)
 
 
 # ---------------------------------------------------------------
