@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Virtual Microbiology Workbench{% endblock %}
+
+{% block content %}
+<section class="ms-hero p-4 p-md-5 mb-5">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-7">
+      <p class="ms-eyebrow text-white-50 mb-2">Allied health lab simulator</p>
+      <h1 class="display-5 fw-bold mb-3">Practice microbiology protocols &mdash; anytime, at zero cost.</h1>
+      <p class="lead mb-0">
+        MedStep replaces single-use consumables and rigid lab schedules with an interactive
+        virtual workbench. Handle instruments, control reagent timers, and review
+        dynamically generated microscopic outcomes from home.
+      </p>
+    </div>
+    <div class="col-lg-5 d-none d-lg-block text-center">
+      <i class="bi bi-virus2 ms-hero-icon" aria-hidden="true"></i>
+    </div>
+  </div>
+</section>
+
+<section id="modules">
+  <p class="ms-eyebrow mb-2">Phase 1 lab modules</p>
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="ms-card p-4 h-100">
+        <div class="d-flex gap-3">
+          <span class="ms-icon-tile ms-tile-gram"><i class="bi bi-palette2"></i></span>
+          <div>
+            <h2 class="h5 fw-semibold">Gram Staining</h2>
+            <p class="text-muted mb-0">
+              Crystal violet, iodine, decolorizer, safranin &mdash; master each timed exposure
+              and interpret Gram-positive vs Gram-negative morphology.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="ms-card p-4 h-100">
+        <div class="d-flex gap-3">
+          <span class="ms-icon-tile ms-tile-streak"><i class="bi bi-circle-half"></i></span>
+          <div>
+            <h2 class="h5 fw-semibold">Quadrant Streak Plating</h2>
+            <p class="text-muted mb-0">
+              Flame the loop, streak four quadrants, and learn to isolate pure colonies
+              with proper aseptic technique.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
