@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     # MedStep apps
     'accounts.apps.AccountsConfig',
     'dashboard.apps.DashboardConfig',
+    'simulator.apps.SimulatorConfig',
 ]
 
 MIDDLEWARE = [

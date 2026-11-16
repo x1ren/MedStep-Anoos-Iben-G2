@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Edit scenario{% else %}New scenario{% endif %}{% endblock %}
+
+{% block content %}
+<div class="mx-auto" style="max-width: 880px">
+  <p class="ms-eyebrow mb-1">Lab Management &middot; Catalog</p>
+  <h1 class="h3 fw-bold mb-4">
+    {% if object %}Edit &ldquo;{{ object.title }}&rdquo;{% else %}New Gram stain scenario{% endif %}
+  </h1>
+
+  {% include 'partials/_non_field_errors.html' %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <div class="ms-card p-4 mb-4">
+      <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-virus me-1"></i> Specimen</h2>
+      {% include 'partials/_field.html' with field=form.title %}
+      {% include 'partials/_field.html' with field=form.specimen_name %}
+      <div class="row">
+        <div class="col-md-4">{% include 'partials/_field.html' with field=form.gram_type %}</div>
+        <div class="col-md-4">{% include 'partials/_field.html' with field=form.cell_shape %}</div>
+        <div class="col-md-4">{% include 'partials/_field.html' with field=form.difficulty %}</div>
+      </div>
+      {% include 'partials/_field.html' with field=form.description %}
+    </div>
+
+    <div class="ms-card p-4 mb-4">
+      <h2 class="h6 fw-bold text-uppercase text-muted mb-1"><i class="bi bi-stopwatch me-1"></i> Target reagent timings</h2>
+      <p class="text-muted small mb-3">
+        Learners are graded against these exposure times. The decolorizer is the critical step:
+        holding it far beyond its target over-decolorizes Gram-positive cells.
+      </p>
+      <div class="row">
+        <div class="col-sm-6 col-lg-3">{% include 'partials/_field.html' with field=form.crystal_violet_seconds %}</div>
+        <div class="col-sm-6 col-lg-3">{% include 'partials/_field.html' with field=form.iodine_seconds %}</div>
+        <div class="col-sm-6 col-lg-3">{% include 'partials/_field.html' with field=form.decolorizer_seconds %}</div>
+        <div class="col-sm-6 col-lg-3">{% include 'partials/_field.html' with field=form.safranin_seconds %}</div>
+      </div>
+    </div>
+
+    <div class="ms-card p-4 mb-4">
+      {% include 'partials/_field.html' with field=form.is_active %}
+      {% if object %}
+        <p class="text-muted small mb-0">
+          Created {{ object.created_at|date:"M j, Y" }} by {{ object.created_by.username|default:"starter seed" }}.
+        </p>
+      {% endif %}
+    </div>
+
+    <div class="d-flex gap-2 justify-content-end">
+      <a href="{% url 'simulator:scenario_list' %}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary px-4">
+        <i class="bi bi-check2 me-1"></i> {% if object %}Save changes{% else %}Create scenario{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

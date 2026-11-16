@@ -33,13 +33,15 @@ class NavbarTests(TestCase):
             self.assertIn(f'{learner_url}{anchor}', html)
         self.assertIn('Playground', html)
         self.assertNotIn(reverse('dashboard:admin'), html)
+        self.assertNotIn(reverse('simulator:scenario_list'), html)
         self.assertNotIn('Lab Management', html)
 
     def test_lab_admin_links(self):
         html = self.nav_html(self.lab_admin)
         admin_url = reverse('dashboard:admin')
-        for anchor in ('#catalog', '#scenarios', '#engagement'):
+        for anchor in ('#catalog', '#engagement'):
             self.assertIn(f'{admin_url}{anchor}', html)
+        self.assertIn(reverse('simulator:scenario_list'), html)
         self.assertIn('Lab Management', html)
         self.assertNotIn(reverse('dashboard:learner'), html)
         self.assertNotIn('Quick start', html)
