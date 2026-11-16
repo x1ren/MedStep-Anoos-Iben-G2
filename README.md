@@ -106,8 +106,10 @@ copy .env.example .env           # macOS/Linux: cp .env.example .env
 python manage.py check
 python manage.py migrate
 
-# 6. Create a Lab Admin account (superusers get the admin role)
-python manage.py createsuperuser
+# 6. Create the demo test accounts (prints the password once)
+python manage.py seed_demo_accounts
+#    or create your own Lab Admin (superusers get the admin role):
+# python manage.py createsuperuser
 
 # 7. Run
 python manage.py runserver
@@ -115,6 +117,18 @@ python manage.py runserver
 
 Open <http://127.0.0.1:8000/>. If port 8000 is taken (for example by XAMPP's
 Apache), use `python manage.py runserver 8001` instead.
+
+### Test accounts
+
+`python manage.py seed_demo_accounts` creates one account per role. Re-running
+it resets them (same usernames, new password). Pass `--password "<pw>"` to
+choose the password; otherwise a random one is printed. Passwords are never
+stored in this repository.
+
+| Role | Username | Email | Lands on |
+|---|---|---|---|
+| Student Learner | `demo_learner` | `demo.learner@medstep.test` | `/dashboard/learner/` |
+| Lab Admin / Content Curator | `demo_admin` | `demo.admin@medstep.test` | `/dashboard/admin/` |
 
 ### Trying it out
 
@@ -143,6 +157,7 @@ All settings come from `.env` (never committed). See [.env.example](.env.example
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | Individual Supabase credentials (used when `DATABASE_URL` is empty). |
 | `DB_SSLMODE` | Default `require` — Supabase only accepts SSL. |
 | `DB_CONN_MAX_AGE` | Seconds to reuse DB connections (default `60`). |
+| `ATTEMPT_COOLDOWN_SECONDS` | Seconds a learner must wait before saving another attempt on the same scenario (default `10`, `0` disables). Stops double-clicks creating duplicate records. |
 
 **Supabase:** Project → **Connect** → **Direct** → Method **Session pooler**
 (IPv4-compatible, port `5432`). Paste the URI as `DATABASE_URL`, or copy host /
