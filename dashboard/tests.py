@@ -1,10 +1,10 @@
 from urllib.parse import quote
 
-from django.test import SimpleTestCase, TestCase
+from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
-from dashboard.catalog import LAB_MODULES, SCENARIOS, SPECIMENS, scenarios_with_details
+from simulator.models import GramStainScenario
 
 PASSWORD = 'Gr4mStain!Violet'
 
@@ -17,25 +17,6 @@ def make_admin(username='curator', **extra):
     return User.objects.create_user(
         username, f'{username}@example.com', PASSWORD, role=User.Role.ADMIN, **extra
     )
-
-
-class CatalogIntegrityTests(SimpleTestCase):
-    def test_scenarios_reference_existing_modules_and_specimens(self):
-        module_slugs = {m['slug'] for m in LAB_MODULES}
-        specimen_slugs = {s['slug'] for s in SPECIMENS}
-        for scenario in SCENARIOS:
-            with self.subTest(scenario=scenario['slug']):
-                self.assertIn(scenario['module'], module_slugs)
-                self.assertTrue(set(scenario['specimens']) <= specimen_slugs)
-                self.assertIn(scenario['status'], {'active', 'draft'})
-
-    def test_scenarios_with_details_resolves_names(self):
-        mixed = next(s for s in scenarios_with_details() if s['slug'] == 'gram-mixed')
-        self.assertEqual(mixed['module_title'], 'Gram Staining')
-        self.assertEqual(
-            [s['name'] for s in mixed['specimen_list']],
-            ['Staphylococcus aureus', 'Escherichia coli'],
-        )
 
 
 class DashboardRedirectTests(TestCase):
@@ -159,22 +140,61 @@ class AdminDashboardTests(TestCase):
         for text in ('Lab Management Dashboard', 'Catalog overview', 'Bacterial specimens',
                      'Active lab scenarios', 'Learner activity', 'Staphylococcus aureus'):
             self.assertContains(response, text)
+        self.assertContains(response, reverse('simulator:scenario_list'))
+        self.assertContains(response, reverse('simulator:scenario_create'))
 
-    def test_catalog_overview_counts(self):
+    def test_catalog_overview_counts_come_from_database(self):
+        GramStainScenario.objects.filter(title='Practice #2: Escherichia coli').update(is_active=False)
         self.client.force_login(self.admin)
         catalog = self.client.get(self.url).context['catalog']
         self.assertEqual(catalog['modules'], 2)
-        self.assertEqual(catalog['specimens'], 6)
-        self.assertEqual(catalog['gram_positive'] + catalog['gram_negative'], 6)
-        self.assertEqual(catalog['scenarios'], catalog['active_scenarios'] + catalog['draft_scenarios'])
+        self.assertEqual(catalog['scenarios'], 3)
+        self.assertEqual(catalog['active_scenarios'], 2)
+        self.assertEqual(catalog['hidden_scenarios'], 1)
+        self.assertEqual(catalog['gram_positive'], 2)
+        self.assertEqual(catalog['gram_negative'], 1)
+        self.assertEqual(catalog['specimens'], 3)
 
-    def test_only_active_scenarios_listed(self):
+    def test_new_scenario_appears_immediately(self):
+        GramStainScenario.objects.create(
+            title='Practice #3: Pseudomonas aeruginosa', specimen_name='Pseudomonas aeruginosa',
+            gram_type='gram_negative', cell_shape='bacilli',
+        )
         self.client.force_login(self.admin)
         response = self.client.get(self.url)
-        statuses = {s['status'] for s in response.context['active_scenarios']}
-        self.assertEqual(statuses, {'active'})
-        self.assertContains(response, 'Mixed smear: Gram-positive vs Gram-negative')
-        self.assertNotContains(response, 'Over-decolorization challenge')  # draft
+        self.assertEqual(response.context['catalog']['scenarios'], 4)
+        self.assertContains(response, 'Practice #3: Pseudomonas aeruginosa')
+        self.assertContains(response, 'Gram-Negative Bacilli (Pink)')
+
+    def test_specimens_are_distinct(self):
+        GramStainScenario.objects.create(
+            title='Another E. coli smear', specimen_name='Escherichia coli',
+            gram_type='gram_negative', cell_shape='bacilli',
+        )
+        self.client.force_login(self.admin)
+        specimens = list(self.client.get(self.url).context['specimens'])
+        self.assertEqual([s['specimen_name'] for s in specimens],
+                         ['Bacillus cereus', 'Escherichia coli', 'Staphylococcus aureus'])
+
+    def test_only_active_scenarios_listed(self):
+        unknown = GramStainScenario.objects.get(title='Unknown Clinical Smear')
+        unknown.is_active = False
+        unknown.save()
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url)
+        listed = [s.title for s in response.context['active_scenarios']]
+        self.assertEqual(listed, ['Practice #1: Staphylococcus aureus', 'Practice #2: Escherichia coli'])
+        practice1 = GramStainScenario.objects.get(title='Practice #1: Staphylococcus aureus')
+        self.assertContains(response, reverse('simulator:scenario_update', args=[practice1.pk]))
+        self.assertNotContains(response, reverse('simulator:scenario_update', args=[unknown.pk]))
+        self.assertContains(response, '1 hidden scenario not visible to learners')
+
+    def test_empty_catalog(self):
+        GramStainScenario.objects.all().delete()
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url)
+        self.assertContains(response, 'learners have nothing to practice yet')
+        self.assertContains(response, 'No specimens yet.')
 
     def test_engagement_metrics(self):
         make_learner('idle')

@@ -1,15 +1,16 @@
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import ListView
 
 from accounts.decorators import RoleRequiredMixin, learner_required
 from accounts.models import User
+from simulator.models import GramStainScenario
 
-from .catalog import LAB_MODULES, QUICK_STARTS, SPECIMENS, scenarios_with_details
+from .catalog import LAB_MODULES, QUICK_STARTS
 
 
 @login_required
@@ -71,22 +72,34 @@ class AdminDashboardView(RoleRequiredMixin, ListView):
         all_learners = User.objects.filter(role=User.Role.LEARNER)
         total = all_learners.count()
         active = all_learners.filter(last_login__gte=now - timedelta(days=7)).count()
-        scenarios = scenarios_with_details()
+
+        # Gram stain catalog, straight from the database.
+        positive = Q(gram_type=GramStainScenario.GramType.POSITIVE)
+        negative = Q(gram_type=GramStainScenario.GramType.NEGATIVE)
+        catalog = GramStainScenario.objects.aggregate(
+            scenarios=Count('id'),
+            active_scenarios=Count('id', filter=Q(is_active=True)),
+            hidden_scenarios=Count('id', filter=Q(is_active=False)),
+            gram_positive=Count('id', filter=positive),
+            gram_negative=Count('id', filter=negative),
+        )
+        catalog['modules'] = len(LAB_MODULES)
+        specimens = (
+            GramStainScenario.objects
+            .values('specimen_name', 'gram_type', 'cell_shape')
+            .distinct()
+            .order_by('specimen_name')
+        )
+        catalog['specimens'] = len(specimens)
 
         context.update({
             'q': self.get_search_query(),
             'modules': LAB_MODULES,
-            'specimens': SPECIMENS,
-            'active_scenarios': [s for s in scenarios if s['status'] == 'active'],
-            'catalog': {
-                'modules': len(LAB_MODULES),
-                'scenarios': len(scenarios),
-                'active_scenarios': sum(s['status'] == 'active' for s in scenarios),
-                'draft_scenarios': sum(s['status'] == 'draft' for s in scenarios),
-                'specimens': len(SPECIMENS),
-                'gram_positive': sum(s['gram'] == 'positive' for s in SPECIMENS),
-                'gram_negative': sum(s['gram'] == 'negative' for s in SPECIMENS),
-            },
+            'specimens': specimens,
+            'active_scenarios': (
+                GramStainScenario.objects.filter(is_active=True).select_related('created_by')
+            ),
+            'catalog': catalog,
             'engagement': {
                 'total_learners': total,
                 'active_7d': active,

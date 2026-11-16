@@ -24,8 +24,15 @@
 
 {# ---------- Catalog management overview ---------- #}
 <section id="catalog" class="mb-5">
-  <p class="ms-eyebrow mb-1">Catalog management</p>
-  <h2 class="h5 fw-bold mb-3">Catalog overview</h2>
+  <div class="d-flex justify-content-between align-items-end mb-3">
+    <div>
+      <p class="ms-eyebrow mb-1">Catalog management</p>
+      <h2 class="h5 fw-bold mb-0">Catalog overview</h2>
+    </div>
+    <a href="{% url 'simulator:scenario_list' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-sliders me-1"></i> Manage scenarios
+    </a>
+  </div>
   <div class="row g-3 mb-4">
     <div class="col-sm-6 col-lg-3">
       <div class="ms-card p-3 h-100 d-flex gap-3 align-items-center">
@@ -38,20 +45,20 @@
         <span class="ms-icon-tile ms-tile-streak"><i class="bi bi-collection"></i></span>
         <div>
           <div class="ms-stat-value">{{ catalog.scenarios }}</div>
-          <div class="text-muted small">Scenarios &middot; {{ catalog.active_scenarios }} active, {{ catalog.draft_scenarios }} draft</div>
+          <div class="text-muted small">Gram stain scenarios &middot; {{ catalog.active_scenarios }} active, {{ catalog.hidden_scenarios }} hidden</div>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-lg-3">
       <div class="ms-card p-3 h-100 d-flex gap-3 align-items-center">
         <span class="ms-icon-tile ms-tile-gram"><i class="bi bi-virus"></i></span>
-        <div><div class="ms-stat-value">{{ catalog.gram_positive }}</div><div class="text-muted small">Gram-positive specimens</div></div>
+        <div><div class="ms-stat-value">{{ catalog.gram_positive }}</div><div class="text-muted small">Gram-positive scenarios</div></div>
       </div>
     </div>
     <div class="col-sm-6 col-lg-3">
       <div class="ms-card p-3 h-100 d-flex gap-3 align-items-center">
         <span class="ms-icon-tile ms-tile-neg"><i class="bi bi-virus2"></i></span>
-        <div><div class="ms-stat-value">{{ catalog.gram_negative }}</div><div class="text-muted small">Gram-negative specimens</div></div>
+        <div><div class="ms-stat-value">{{ catalog.gram_negative }}</div><div class="text-muted small">Gram-negative scenarios</div></div>
       </div>
     </div>
   </div>
@@ -59,10 +66,7 @@
   <div class="row g-4">
     <div class="col-lg-5">
       <div class="ms-card p-4 h-100">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h3 class="h6 fw-bold mb-0">Modules</h3>
-          <button type="button" class="btn btn-outline-primary btn-sm" disabled><i class="bi bi-plus-lg me-1"></i>New module</button>
-        </div>
+        <h3 class="h6 fw-bold mb-3">Modules</h3>
         <ul class="list-unstyled mb-0">
           {% for module in modules %}
             <li class="d-flex gap-3 align-items-center{% if not forloop.last %} mb-3{% endif %}">
@@ -71,7 +75,11 @@
                 <div class="fw-semibold">{{ module.title }}</div>
                 <div class="text-muted small">{{ module.steps|length }} steps &middot; {{ module.duration }}</div>
               </div>
-              <button type="button" class="btn btn-light btn-sm" disabled aria-label="Edit {{ module.title }}"><i class="bi bi-pencil"></i></button>
+              {% if module.slug == 'gram-staining' %}
+                <a href="{% url 'simulator:scenario_list' %}" class="btn btn-light btn-sm" aria-label="Manage {{ module.title }} scenarios"><i class="bi bi-pencil"></i></a>
+              {% else %}
+                <span class="badge text-bg-light border">Coming soon</span>
+              {% endif %}
             </li>
           {% endfor %}
         </ul>
@@ -81,24 +89,26 @@
       <div class="ms-card overflow-hidden h-100">
         <div class="d-flex justify-content-between align-items-center px-4 pt-4 pb-2">
           <h3 class="h6 fw-bold mb-0">Bacterial specimens</h3>
-          <button type="button" class="btn btn-outline-primary btn-sm" disabled><i class="bi bi-plus-lg me-1"></i>Add specimen</button>
+          <a href="{% url 'simulator:scenario_create' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Add specimen</a>
         </div>
         <div class="table-responsive">
           <table class="table ms-table align-middle mb-0">
-            <thead><tr><th class="ps-4">Organism</th><th>Gram reaction</th><th class="pe-4">Morphology</th></tr></thead>
+            <thead><tr><th class="ps-4">Organism</th><th>Gram reaction</th><th class="pe-4">Cell shape</th></tr></thead>
             <tbody>
               {% for specimen in specimens %}
                 <tr>
-                  <td class="ps-4 fst-italic">{{ specimen.name }}</td>
+                  <td class="ps-4 fst-italic">{{ specimen.specimen_name }}</td>
                   <td>
-                    {% if specimen.gram == 'positive' %}
+                    {% if specimen.gram_type == 'gram_positive' %}
                       <span class="badge ms-badge-gram-pos">Gram-positive</span>
                     {% else %}
                       <span class="badge ms-badge-gram-neg">Gram-negative</span>
                     {% endif %}
                   </td>
-                  <td class="pe-4 text-muted">{{ specimen.morphology }}</td>
+                  <td class="pe-4 text-muted text-capitalize">{{ specimen.cell_shape }}</td>
                 </tr>
+              {% empty %}
+                <tr><td colspan="3" class="text-center text-muted p-4">No specimens yet.</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -115,33 +125,42 @@
       <p class="ms-eyebrow mb-1">Simulation scenarios</p>
       <h2 class="h5 fw-bold mb-0">Active lab scenarios</h2>
     </div>
-    <button type="button" class="btn btn-primary btn-sm" disabled><i class="bi bi-plus-lg me-1"></i>New scenario</button>
+    <a href="{% url 'simulator:scenario_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New scenario</a>
   </div>
   <div class="ms-card overflow-hidden">
     <div class="table-responsive">
       <table class="table ms-table align-middle mb-0">
         <thead>
-          <tr><th class="ps-4">Scenario</th><th>Module</th><th>Specimens</th><th>Difficulty</th><th class="pe-4">Status</th></tr>
+          <tr><th class="ps-4">Scenario</th><th>Specimen</th><th>Expected result</th><th>Difficulty</th><th class="pe-4 text-end">Actions</th></tr>
         </thead>
         <tbody>
           {% for scenario in active_scenarios %}
             <tr>
               <td class="ps-4 fw-semibold">{{ scenario.title }}</td>
-              <td>{{ scenario.module_title }}</td>
-              <td class="fst-italic small">{% for s in scenario.specimen_list %}{{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-              <td>{{ scenario.difficulty }}</td>
-              <td class="pe-4"><span class="badge text-bg-success-subtle text-success-emphasis">Active</span></td>
+              <td class="fst-italic small">{{ scenario.specimen_name }}</td>
+              <td>
+                <span class="badge {% if scenario.is_gram_positive %}ms-badge-gram-pos{% else %}ms-badge-gram-neg{% endif %}">
+                  {{ scenario.expected_result }}
+                </span>
+              </td>
+              <td>{{ scenario.get_difficulty_display }}</td>
+              <td class="pe-4 text-end">
+                <a href="{% url 'simulator:scenario_update' scenario.pk %}" class="btn btn-outline-primary btn-sm"
+                   aria-label="Edit {{ scenario.title }}"><i class="bi bi-pencil"></i></a>
+              </td>
             </tr>
           {% empty %}
-            <tr><td colspan="5" class="text-center text-muted p-4">No active scenarios.</td></tr>
+            <tr><td colspan="5" class="text-center text-muted p-4">No active scenarios — learners have nothing to practice yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    <div class="px-4 py-3 border-top text-muted small">
-      <i class="bi bi-info-circle me-1"></i>
-      {{ catalog.draft_scenarios }} draft scenario{{ catalog.draft_scenarios|pluralize }} not yet visible to learners.
-      Catalog editing is enabled in a later increment.
+    <div class="px-4 py-3 border-top text-muted small d-flex justify-content-between flex-wrap gap-2">
+      <span>
+        <i class="bi bi-info-circle me-1"></i>
+        {{ catalog.hidden_scenarios }} hidden scenario{{ catalog.hidden_scenarios|pluralize }} not visible to learners.
+      </span>
+      <a href="{% url 'simulator:scenario_list' %}">View all scenarios &rarr;</a>
     </div>
   </div>
 </section>
