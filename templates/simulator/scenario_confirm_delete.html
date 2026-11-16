@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete scenario{% endblock %}
+
+{% block content %}
+<div class="mx-auto" style="max-width: 600px">
+  <p class="ms-eyebrow mb-1">Lab Management &middot; Catalog</p>
+  <h1 class="h3 fw-bold mb-4">Delete scenario?</h1>
+
+  <div class="ms-card p-4">
+    <div class="d-flex gap-3 mb-3">
+      <span class="ms-icon-tile ms-tile-neg"><i class="bi bi-trash3"></i></span>
+      <div>
+        <h2 class="h5 fw-semibold mb-1">{{ scenario.title }}</h2>
+        <div class="text-muted small">
+          <span class="fst-italic">{{ scenario.specimen_name }}</span>
+          &middot; {{ scenario.get_gram_type_display }} {{ scenario.get_cell_shape_display|lower }}
+          &middot; {{ scenario.get_difficulty_display }}
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-warning d-flex gap-2 mb-4" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <div>
+        This permanently removes the scenario from the catalog and cannot be undone.
+        To take it out of the learner playground but keep it, <a href="{% url 'simulator:scenario_update' scenario.pk %}">edit it</a>
+        and untick <strong>Active</strong> instead.
+      </div>
+    </div>
+
+    <form method="post" class="d-flex gap-2 justify-content-end">
+      {% csrf_token %}
+      <a href="{% url 'simulator:scenario_list' %}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-danger px-4">
+        <i class="bi bi-trash3 me-1"></i> Yes, delete it
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -192,3 +192,46 @@ class ScenarioUpdateTests(ScenarioAdminTestCase):
     def test_missing_scenario_is_404(self):
         response = self.client.get(reverse('simulator:scenario_update', args=[99999]))
         self.assertEqual(response.status_code, 404)
+
+
+class ScenarioDeleteTests(ScenarioAdminTestCase):
+    def delete_url(self, pk=None):
+        return reverse('simulator:scenario_delete', args=[pk or self.seeded.pk])
+
+    def test_anonymous_redirected_to_login(self):
+        url = self.delete_url()
+        response = self.client.post(url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={quote(url)}")
+        self.assertTrue(GramStainScenario.objects.filter(pk=self.seeded.pk).exists())
+
+    def test_learner_forbidden(self):
+        self.client.force_login(self.learner)
+        self.assertEqual(self.client.get(self.delete_url()).status_code, 403)
+        self.assertEqual(self.client.post(self.delete_url()).status_code, 403)
+        self.assertTrue(GramStainScenario.objects.filter(pk=self.seeded.pk).exists())
+
+    def test_get_shows_confirmation_without_deleting(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(self.delete_url())
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'simulator/scenario_confirm_delete.html')
+        self.assertContains(response, 'Practice #2: Escherichia coli')
+        self.assertContains(response, 'Yes, delete it')
+        self.assertTrue(GramStainScenario.objects.filter(pk=self.seeded.pk).exists())
+
+    def test_post_deletes_and_shows_message(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(self.delete_url())
+        self.assertRedirects(response, reverse('simulator:scenario_list'))
+        self.assertFalse(GramStainScenario.objects.filter(pk=self.seeded.pk).exists())
+        self.assertEqual(GramStainScenario.objects.count(), 2)
+        self.assertIn('Scenario "Practice #2: Escherichia coli" was deleted.', messages_of(response))
+
+    def test_missing_scenario_is_404(self):
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.post(self.delete_url(99999)).status_code, 404)
+
+    def test_list_links_to_delete_page(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('simulator:scenario_list'))
+        self.assertContains(response, self.delete_url())

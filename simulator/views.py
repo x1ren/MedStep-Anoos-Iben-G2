@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from accounts.decorators import RoleRequiredMixin
 from accounts.models import User
@@ -46,3 +46,18 @@ class ScenarioCreateView(ScenarioFormMixin, CreateView):
 
 class ScenarioUpdateView(ScenarioFormMixin, UpdateView):
     success_message = 'Scenario "%(title)s" was updated.'
+
+
+class ScenarioDeleteView(LabAdminRequiredMixin, DeleteView):
+    """GET shows a confirmation page; only POST actually deletes."""
+
+    model = GramStainScenario
+    template_name = 'simulator/scenario_confirm_delete.html'
+    context_object_name = 'scenario'
+    success_url = reverse_lazy('simulator:scenario_list')
+
+    def form_valid(self, form):
+        title = self.object.title
+        response = super().form_valid(form)
+        messages.success(self.request, f'Scenario "{title}" was deleted.')
+        return response
