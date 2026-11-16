@@ -18,7 +18,7 @@ microscopic outcome of their own technique to build procedural muscle memory.
 | **Phase 1 (PD1)** | Accounts: registration, login/logout, roles, role-based dashboards, profiles |
 | **Phase 2 (PD2)** | Gram Staining Simulator: scenario catalog CRUD, interactive workbench, server-side grading, learner practice records |
 
-The PD2 completion report is in [docs/PD2_Completion_Report.md](docs/PD2_Completion_Report.md).
+The PD2 completion report is in [docs/PD2_Completion_Report.md](docs/MedStep-Anoos-Iben-G2-PD2.pdf).
 
 ![Gram Staining Workbench](docs/screenshots/02-workbench-mid-run.png)
 
