@@ -1,5 +1,8 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import ProtectedError
+from django.shortcuts import redirect
+from django.template.defaultfilters import pluralize
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
@@ -56,8 +59,23 @@ class ScenarioDeleteView(LabAdminRequiredMixin, DeleteView):
     context_object_name = 'scenario'
     success_url = reverse_lazy('simulator:scenario_list')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['attempt_count'] = self.object.attempts.count()
+        return context
+
     def form_valid(self, form):
         title = self.object.title
-        response = super().form_valid(form)
+        try:
+            response = super().form_valid(form)
+        except ProtectedError:
+            # SimulationAttempt.scenario is PROTECT: keep learners' history.
+            count = self.object.attempts.count()
+            messages.error(
+                self.request,
+                f'"{title}" has {count} saved learner attempt{pluralize(count)} and cannot be '
+                'deleted. Untick "Active" to hide it from the playground instead.',
+            )
+            return redirect('simulator:scenario_update', pk=self.object.pk)
         messages.success(self.request, f'Scenario "{title}" was deleted.')
         return response

@@ -94,3 +94,41 @@ class GramStainScenario(models.Model):
         """e.g. 'Gram-Positive Cocci (Violet)'."""
         gram = 'Gram-Positive' if self.is_gram_positive else 'Gram-Negative'
         return f'{gram} {self.get_cell_shape_display()} ({self.expected_color.title()})'
+
+
+class SimulationAttempt(models.Model):
+    """One completed Gram staining run by a learner (their practice log)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='attempts',
+    )
+    # PROTECT: a scenario with saved attempts cannot be deleted, so learners
+    # never lose their practice history. Admins hide it (is_active) instead.
+    scenario = models.ForeignKey(
+        GramStainScenario,
+        on_delete=models.PROTECT,
+        related_name='attempts',
+    )
+    # Exact reagent sequence and seconds held, e.g.
+    # [{"reagent": "crystal_violet", "seconds": 60}, {"reagent": "water", "seconds": 5}, ...]
+    recorded_steps_json = models.JSONField(default=list)
+    score = models.PositiveIntegerField(validators=[MaxValueValidator(100)])
+    outcome_diagnosis = models.CharField(max_length=200)
+    is_passed = models.BooleanField(default=False)
+    lab_notes = models.TextField(blank=True)
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-completed_at']
+        indexes = [
+            # Practice log and dashboard stats query "this user's latest attempts".
+            models.Index(fields=['user', '-completed_at'], name='attempt_user_recent_idx'),
+        ]
+        constraints = [
+            models.CheckConstraint(condition=Q(score__lte=100), name='attempt_score_max_100'),
+        ]
+
+    def __str__(self):
+        return f'{self.user} · {self.scenario} · {self.score}/100'
