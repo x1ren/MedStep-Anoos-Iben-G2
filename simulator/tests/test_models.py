@@ -8,7 +8,7 @@ from simulator.models import GramStainScenario
 
 def make_scenario(**overrides):
     data = {
-        'title': 'Practice #1: Staphylococcus aureus',
+        'title': 'Test smear: Staphylococcus aureus',
         'specimen_name': 'Staphylococcus aureus',
         'gram_type': GramStainScenario.GramType.POSITIVE,
         'cell_shape': GramStainScenario.CellShape.COCCI,
@@ -31,13 +31,13 @@ class GramStainScenarioModelTests(TestCase):
 
     def test_str_and_expected_results(self):
         positive = make_scenario()
-        self.assertEqual(str(positive), 'Practice #1: Staphylococcus aureus')
+        self.assertEqual(str(positive), 'Test smear: Staphylococcus aureus')
         self.assertTrue(positive.is_gram_positive)
         self.assertEqual(positive.expected_color, 'violet')
         self.assertEqual(positive.expected_result, 'Gram-Positive Cocci (Violet)')
 
         negative = make_scenario(
-            title='Practice #2: Escherichia coli', specimen_name='Escherichia coli',
+            title='Test smear: Escherichia coli', specimen_name='Escherichia coli',
             gram_type=GramStainScenario.GramType.NEGATIVE,
             cell_shape=GramStainScenario.CellShape.BACILLI,
         )
