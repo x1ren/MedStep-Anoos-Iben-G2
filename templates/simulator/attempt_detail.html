@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Report · {{ scenario.title }}{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/workbench.css' %}">
+{% endblock %}
+
+{% block content %}
+{# ---------- Header ---------- #}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <p class="ms-eyebrow mb-1">Microscopic outcome report</p>
+    <h1 class="h3 fw-bold mb-1">{{ scenario.title }}</h1>
+    <p class="text-muted mb-0"><i class="bi bi-clock me-1"></i>{{ attempt.completed_at|date:"F j, Y, g:i A" }}</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if scenario.is_active %}
+      <a href="{% url 'simulator:workbench' scenario.pk %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-arrow-repeat me-1"></i> Try again
+      </a>
+    {% endif %}
+    <a href="{% url 'simulator:attempt_list' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-journal-text me-1"></i> Practice log
+    </a>
+    <a href="{% url 'simulator:attempt_delete' attempt.pk %}" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-trash3 me-1"></i> Delete
+    </a>
+  </div>
+</div>
+
+{# ---------- Result banner ---------- #}
+<div class="ms-card p-4 mb-4">
+  <div class="d-flex flex-column flex-md-row align-items-md-center gap-4">
+    <div class="ms-score {% if attempt.is_passed %}is-passed{% else %}is-failed{% endif %}" aria-label="Score {{ attempt.score }} out of 100">
+      <span class="ms-score-value">{{ attempt.score }}</span><span class="ms-score-max">/100</span>
+    </div>
+    <div class="flex-grow-1">
+      {% if attempt.is_passed %}
+        <span class="badge text-bg-success mb-2"><i class="bi bi-check-circle me-1"></i>Passed</span>
+      {% else %}
+        <span class="badge text-bg-danger mb-2"><i class="bi bi-x-circle me-1"></i>Not passed</span>
+      {% endif %}
+      <h2 class="h4 fw-bold mb-2">{{ attempt.outcome_diagnosis }}</h2>
+      <p class="text-muted mb-0">
+        Specimen: <span class="fst-italic">{{ scenario.specimen_name }}</span>
+        &middot; a correct stain shows <strong>{{ scenario.expected_result }}</strong>.
+      </p>
+    </div>
+  </div>
+</div>
+
+{# ---------- Slides ---------- #}
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="ms-scope h-100">
+      <p class="ms-scope-caption text-uppercase fw-semibold mb-2"><i class="bi bi-zoom-in me-1"></i> Your slide &middot; 1000&times; oil immersion</p>
+      {% include 'simulator/_slide.html' with cells=cells stain=attempt.observed_color slide_id='result-slide' magnify='1.9' label='Your stained smear at high magnification' %}
+      <p class="ms-scope-caption mt-2 mb-0">
+        Cells appear <strong class="text-white">{{ attempt.get_observed_color_display|lower }}</strong>
+        {% if attempt.observed_color == 'violet' %}&mdash; crystal violet retained.
+        {% elif attempt.observed_color == 'pink' %}&mdash; safranin counterstain only.
+        {% else %}&mdash; no stain retained.{% endif %}
+      </p>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="ms-scope h-100">
+      <p class="ms-scope-caption text-uppercase fw-semibold mb-2"><i class="bi bi-bookmark-check me-1"></i> Reference &middot; correctly stained</p>
+      {% include 'simulator/_slide.html' with cells=cells stain=attempt.expected_color slide_id='reference-slide' magnify='1.9' label='Reference: a correctly stained smear' %}
+      <p class="ms-scope-caption mt-2 mb-0">
+        Expected: <strong class="text-white">{{ attempt.get_expected_color_display|lower }}</strong> {{ scenario.get_cell_shape_display|lower }}.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  {# ---------- Feedback ---------- #}
+  <div class="col-lg-7">
+    <div class="ms-card p-4 mb-4">
+      <h2 class="h6 fw-bold mb-3"><i class="bi bi-clipboard-check me-1"></i> Step-by-step feedback</h2>
+      <ul class="list-unstyled mb-0">
+        {% for item in attempt.grading_feedback %}
+          <li class="d-flex gap-3{% if not forloop.last %} mb-3{% endif %}">
+            {% if item.status == 'ok' %}<i class="bi bi-check-circle-fill text-success fs-5"></i>
+            {% elif item.status == 'warn' %}<i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+            {% else %}<i class="bi bi-x-circle-fill text-danger fs-5"></i>{% endif %}
+            <div class="flex-grow-1">
+              <div class="fw-semibold">
+                {{ item.title }}
+                {% if item.target %}<span class="badge text-bg-light border ms-1">target {{ item.target }} s</span>{% endif %}
+              </div>
+              <div class="text-muted small">{{ item.message }}</div>
+            </div>
+          </li>
+        {% empty %}
+          <li class="text-muted">No feedback recorded for this attempt.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    {# ---------- Lab notes (Update) ---------- #}
+    <div class="ms-card p-4" id="notes">
+      <h2 class="h6 fw-bold mb-3"><i class="bi bi-pencil-square me-1"></i> Lab notes</h2>
+      <form method="post" action="{% url 'simulator:attempt_notes' attempt.pk %}" novalidate>
+        {% csrf_token %}
+        {% include 'partials/_field.html' with field=notes_form.lab_notes %}
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Save notes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ---------- Recorded steps ---------- #}
+  <div class="col-lg-5">
+    <div class="ms-card overflow-hidden">
+      <h2 class="h6 fw-bold px-4 pt-4 mb-2"><i class="bi bi-list-ol me-1"></i> Recorded steps</h2>
+      <div class="table-responsive">
+        <table class="table ms-table align-middle mb-0">
+          <thead><tr><th class="ps-4">#</th><th>Reagent</th><th class="pe-4 text-end">Held</th></tr></thead>
+          <tbody>
+            {% for step in steps %}
+              <tr>
+                <td class="ps-4 text-muted">{{ step.number }}</td>
+                <td><span class="ms-swatch" style="background: {{ step.color }}"></span>{{ step.label }}</td>
+                <td class="pe-4 text-end font-monospace">{{ step.seconds }} s</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3" class="text-center text-muted p-4">No steps recorded.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

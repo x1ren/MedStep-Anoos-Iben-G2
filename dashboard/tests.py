@@ -1,10 +1,11 @@
 from urllib.parse import quote
 
-from django.test import SimpleTestCase, TestCase
+from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
-from dashboard.catalog import LAB_MODULES, SCENARIOS, SPECIMENS, scenarios_with_details
+from simulator.models import GramStainScenario, SimulationAttempt
+from simulator.tests.factories import make_attempt, protocol_steps
 
 PASSWORD = 'Gr4mStain!Violet'
 
@@ -17,25 +18,6 @@ def make_admin(username='curator', **extra):
     return User.objects.create_user(
         username, f'{username}@example.com', PASSWORD, role=User.Role.ADMIN, **extra
     )
-
-
-class CatalogIntegrityTests(SimpleTestCase):
-    def test_scenarios_reference_existing_modules_and_specimens(self):
-        module_slugs = {m['slug'] for m in LAB_MODULES}
-        specimen_slugs = {s['slug'] for s in SPECIMENS}
-        for scenario in SCENARIOS:
-            with self.subTest(scenario=scenario['slug']):
-                self.assertIn(scenario['module'], module_slugs)
-                self.assertTrue(set(scenario['specimens']) <= specimen_slugs)
-                self.assertIn(scenario['status'], {'active', 'draft'})
-
-    def test_scenarios_with_details_resolves_names(self):
-        mixed = next(s for s in scenarios_with_details() if s['slug'] == 'gram-mixed')
-        self.assertEqual(mixed['module_title'], 'Gram Staining')
-        self.assertEqual(
-            [s['name'] for s in mixed['specimen_list']],
-            ['Staphylococcus aureus', 'Escherichia coli'],
-        )
 
 
 class DashboardRedirectTests(TestCase):
@@ -112,11 +94,14 @@ class LearnerDashboardTests(TestCase):
 
     def test_personal_stats_start_at_zero(self):
         self.client.force_login(self.learner)
-        stats = self.client.get(self.url).context['stats']
+        response = self.client.get(self.url)
+        stats = response.context['stats']
         self.assertEqual(stats['sessions'], 0)
-        self.assertEqual(stats['modules_completed'], 0)
-        self.assertEqual(stats['modules_available'], 2)
+        self.assertEqual(stats['passed'], 0)
         self.assertIsNone(stats['best_score'])
+        self.assertIsNone(stats['pass_rate'])
+        self.assertEqual((stats['scenarios_passed'], stats['scenarios_total']), (0, 3))
+        self.assertContains(response, 'No simulation runs yet')
 
     def test_does_not_leak_admin_content(self):
         self.client.force_login(self.learner)
@@ -159,22 +144,61 @@ class AdminDashboardTests(TestCase):
         for text in ('Lab Management Dashboard', 'Catalog overview', 'Bacterial specimens',
                      'Active lab scenarios', 'Learner activity', 'Staphylococcus aureus'):
             self.assertContains(response, text)
+        self.assertContains(response, reverse('simulator:scenario_list'))
+        self.assertContains(response, reverse('simulator:scenario_create'))
 
-    def test_catalog_overview_counts(self):
+    def test_catalog_overview_counts_come_from_database(self):
+        GramStainScenario.objects.filter(title='Practice #2: Escherichia coli').update(is_active=False)
         self.client.force_login(self.admin)
         catalog = self.client.get(self.url).context['catalog']
         self.assertEqual(catalog['modules'], 2)
-        self.assertEqual(catalog['specimens'], 6)
-        self.assertEqual(catalog['gram_positive'] + catalog['gram_negative'], 6)
-        self.assertEqual(catalog['scenarios'], catalog['active_scenarios'] + catalog['draft_scenarios'])
+        self.assertEqual(catalog['scenarios'], 3)
+        self.assertEqual(catalog['active_scenarios'], 2)
+        self.assertEqual(catalog['hidden_scenarios'], 1)
+        self.assertEqual(catalog['gram_positive'], 2)
+        self.assertEqual(catalog['gram_negative'], 1)
+        self.assertEqual(catalog['specimens'], 3)
 
-    def test_only_active_scenarios_listed(self):
+    def test_new_scenario_appears_immediately(self):
+        GramStainScenario.objects.create(
+            title='Practice #3: Pseudomonas aeruginosa', specimen_name='Pseudomonas aeruginosa',
+            gram_type='gram_negative', cell_shape='bacilli',
+        )
         self.client.force_login(self.admin)
         response = self.client.get(self.url)
-        statuses = {s['status'] for s in response.context['active_scenarios']}
-        self.assertEqual(statuses, {'active'})
-        self.assertContains(response, 'Mixed smear: Gram-positive vs Gram-negative')
-        self.assertNotContains(response, 'Over-decolorization challenge')  # draft
+        self.assertEqual(response.context['catalog']['scenarios'], 4)
+        self.assertContains(response, 'Practice #3: Pseudomonas aeruginosa')
+        self.assertContains(response, 'Gram-Negative Bacilli (Pink)')
+
+    def test_specimens_are_distinct(self):
+        GramStainScenario.objects.create(
+            title='Another E. coli smear', specimen_name='Escherichia coli',
+            gram_type='gram_negative', cell_shape='bacilli',
+        )
+        self.client.force_login(self.admin)
+        specimens = list(self.client.get(self.url).context['specimens'])
+        self.assertEqual([s['specimen_name'] for s in specimens],
+                         ['Bacillus cereus', 'Escherichia coli', 'Staphylococcus aureus'])
+
+    def test_only_active_scenarios_listed(self):
+        unknown = GramStainScenario.objects.get(title='Unknown Clinical Smear')
+        unknown.is_active = False
+        unknown.save()
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url)
+        listed = [s.title for s in response.context['active_scenarios']]
+        self.assertEqual(listed, ['Practice #1: Staphylococcus aureus', 'Practice #2: Escherichia coli'])
+        practice1 = GramStainScenario.objects.get(title='Practice #1: Staphylococcus aureus')
+        self.assertContains(response, reverse('simulator:scenario_update', args=[practice1.pk]))
+        self.assertNotContains(response, reverse('simulator:scenario_update', args=[unknown.pk]))
+        self.assertContains(response, '1 hidden scenario not visible to learners')
+
+    def test_empty_catalog(self):
+        GramStainScenario.objects.all().delete()
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url)
+        self.assertContains(response, 'learners have nothing to practice yet')
+        self.assertContains(response, 'No specimens yet.')
 
     def test_engagement_metrics(self):
         make_learner('idle')
@@ -220,3 +244,120 @@ class AdminDashboardTests(TestCase):
         self.assertContains(response, '?q=lab&amp;page=2#engagement')
         page2 = self.client.get(self.url, {'q': 'lab', 'page': 2})
         self.assertEqual(len(page2.context['learners']), 2)
+
+
+class LearnerDashboardWithAttemptsTests(TestCase):
+    """The Student Playground reads scenarios and the learner's own attempts from the database."""
+
+    url = reverse('dashboard:learner')
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.learner = make_learner(first_name='Lea')
+        cls.other = make_learner('bob')
+        cls.staph = GramStainScenario.objects.get(title='Practice #1: Staphylococcus aureus')
+        cls.ecoli = GramStainScenario.objects.get(title='Practice #2: Escherichia coli')
+        cls.unknown = GramStainScenario.objects.get(title='Unknown Clinical Smear')
+        make_attempt(cls.learner, cls.staph)                                   # 100, passed
+        make_attempt(cls.learner, cls.staph, protocol_steps(decolorizer=40))   # failed
+        make_attempt(cls.other, cls.ecoli)                                     # someone else
+
+    def setUp(self):
+        self.client.force_login(self.learner)
+
+    def test_lists_active_scenarios_beginner_first_with_launch_links(self):
+        GramStainScenario.objects.create(
+            title='Hidden draft', specimen_name='X', gram_type='gram_negative', cell_shape='cocci',
+            is_active=False,
+        )
+        response = self.client.get(self.url)
+        titles = [s.title for s in response.context['scenarios']]
+        self.assertEqual(titles, ['Practice #1: Staphylococcus aureus',
+                                  'Practice #2: Escherichia coli', 'Unknown Clinical Smear'])
+        for scenario in (self.staph, self.ecoli, self.unknown):
+            self.assertContains(response, reverse('simulator:workbench', args=[scenario.pk]))
+        self.assertNotContains(response, 'Hidden draft')
+
+    def test_per_scenario_counts_are_my_own(self):
+        scenarios = {s.title: s for s in self.client.get(self.url).context['scenarios']}
+        staph = scenarios['Practice #1: Staphylococcus aureus']
+        ecoli = scenarios['Practice #2: Escherichia coli']
+        self.assertEqual((staph.my_attempts, staph.my_best, staph.my_passes), (2, 100, 1))
+        self.assertEqual((ecoli.my_attempts, ecoli.my_best), (0, None))  # bob's attempt not counted
+
+    def test_stats_and_progress(self):
+        response = self.client.get(self.url)
+        stats = response.context['stats']
+        self.assertEqual(stats['sessions'], 2)
+        self.assertEqual(stats['passed'], 1)
+        self.assertEqual(stats['best_score'], 100)
+        self.assertEqual(stats['pass_rate'], 50)
+        self.assertEqual((stats['scenarios_passed'], stats['scenarios_total']), (1, 3))
+        gram = next(m for m in response.context['modules'] if m['slug'] == 'gram-staining')
+        self.assertEqual(gram['progress'], 33)
+
+    def test_recent_attempts_are_my_own(self):
+        recent = list(self.client.get(self.url).context['recent_attempts'])
+        self.assertEqual(len(recent), 2)
+        self.assertTrue(all(a.user == self.learner for a in recent))
+
+    def test_quick_starts_launch_matching_scenarios(self):
+        cards = {c['title']: c for c in self.client.get(self.url).context['quick_starts']}
+        self.assertEqual(cards['Classic Gram stain run']['scenario'], self.staph)
+        self.assertEqual(cards['Decolorizer timing drill']['scenario'], self.unknown)
+        self.assertIsNone(cards['Four-quadrant streak']['scenario'])
+
+    def test_challenge_specimen_stays_hidden(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, 'Unknown specimen')
+        self.assertNotContains(response, 'Bacillus cereus')
+
+    def test_no_active_scenarios(self):
+        GramStainScenario.objects.update(is_active=False)
+        response = self.client.get(self.url)
+        self.assertContains(response, 'No Gram staining scenarios are available yet')
+        self.assertTrue(all(c['scenario'] is None for c in response.context['quick_starts']))
+
+
+class AdminDashboardAttemptMetricsTests(TestCase):
+    url = reverse('dashboard:admin')
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = make_admin()
+        cls.lea = make_learner('lea')
+        cls.bob = make_learner('bob')
+        cls.staph = GramStainScenario.objects.get(title='Practice #1: Staphylococcus aureus')
+        make_attempt(cls.lea, cls.staph)                                     # 100 pass
+        make_attempt(cls.lea, cls.staph, protocol_steps(decolorizer=40))     # 65 fail
+        make_attempt(cls.bob, cls.staph)                                     # 100 pass
+
+    def setUp(self):
+        self.client.force_login(self.admin)
+
+    def test_overall_attempt_metrics(self):
+        stats = self.client.get(self.url).context['attempt_stats']
+        self.assertEqual(stats['total'], 3)
+        self.assertEqual(stats['last_7d'], 3)
+        self.assertEqual(stats['pass_rate'], 67)
+        self.assertEqual(stats['average_score'], 88)
+
+    def test_per_scenario_metrics(self):
+        scenarios = {s.title: s for s in self.client.get(self.url).context['active_scenarios']}
+        staph = scenarios['Practice #1: Staphylococcus aureus']
+        self.assertEqual(staph.attempt_count, 3)
+        self.assertEqual(round(staph.average_score), 88)
+        self.assertEqual(staph.pass_rate, 67)
+        self.assertIsNone(scenarios['Practice #2: Escherichia coli'].pass_rate)
+
+    def test_learner_list_shows_attempt_counts(self):
+        learners = {u.username: u for u in self.client.get(self.url).context['learners']}
+        self.assertEqual((learners['lea'].attempt_count, learners['lea'].best_score), (2, 100))
+        self.assertEqual(learners['bob'].attempt_count, 1)
+
+    def test_no_attempts_yet(self):
+        SimulationAttempt.objects.all().delete()
+        response = self.client.get(self.url)
+        self.assertEqual(response.context['attempt_stats']['total'], 0)
+        self.assertIsNone(response.context['attempt_stats']['pass_rate'])
+        self.assertIsNone(response.context['attempt_stats']['average_score'])

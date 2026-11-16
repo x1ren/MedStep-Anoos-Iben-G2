@@ -1,0 +1,37 @@
+{% comment %}
+  Microscope field of view (SVG). Parameters:
+    cells    - list from simulator.slide.build_cells
+    stain    - unstained | violet | pink | colorless
+    slide_id - unique id prefix (needed when two slides share a page)
+    label    - accessible description
+    magnify  - optional zoom factor around the centre (e.g. "1.9" for the report's high-power view)
+{% endcomment %}
+<svg class="ms-slide" viewBox="0 0 400 400" role="img" aria-label="{{ label|default:'Microscope field of view' }}"
+     id="{{ slide_id }}">
+  <defs>
+    <clipPath id="{{ slide_id }}-fov"><circle cx="200" cy="200" r="190"></circle></clipPath>
+    <radialGradient id="{{ slide_id }}-light" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#fffdf6"></stop>
+      <stop offset="80%" stop-color="#f3efe2"></stop>
+      <stop offset="100%" stop-color="#d9d3c2"></stop>
+    </radialGradient>
+  </defs>
+
+  <circle class="ms-fov-bg" cx="200" cy="200" r="190" fill="url(#{{ slide_id }}-light)"></circle>
+  <g clip-path="url(#{{ slide_id }}-fov)">
+    <g class="ms-cells" data-stain="{{ stain|default:'unstained' }}"
+       {% if magnify %}transform="translate(200 200) scale({{ magnify }}) translate(-200 -200)"{% endif %}>
+      {% for cell in cells %}
+        {% if cell.kind == 'rod' %}
+          <rect class="ms-cell" x="{{ cell.x }}" y="{{ cell.y }}" width="{{ cell.width }}" height="{{ cell.height }}"
+                rx="{{ cell.rx }}" transform="rotate({{ cell.angle }} {{ cell.cx }} {{ cell.cy }})"></rect>
+        {% else %}
+          <circle class="ms-cell" cx="{{ cell.cx }}" cy="{{ cell.cy }}" r="{{ cell.r }}"></circle>
+        {% endif %}
+      {% endfor %}
+    </g>
+    {# Reagent pooled on the slide; recoloured and faded by the workbench JS. #}
+    <rect class="ms-wash" data-role="wash" x="0" y="0" width="400" height="400"></rect>
+  </g>
+  <circle class="ms-fov-ring" cx="200" cy="200" r="190"></circle>
+</svg>

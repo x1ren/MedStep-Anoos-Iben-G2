@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete attempt{% endblock %}
+
+{% block content %}
+<div class="mx-auto" style="max-width: 600px">
+  <p class="ms-eyebrow mb-1">Practice log</p>
+  <h1 class="h3 fw-bold mb-4">Delete this attempt?</h1>
+
+  <div class="ms-card p-4">
+    <div class="d-flex gap-3 mb-3">
+      <span class="ms-icon-tile ms-tile-neg"><i class="bi bi-trash3"></i></span>
+      <div>
+        <h2 class="h5 fw-semibold mb-1">{{ attempt.scenario.title }}</h2>
+        <div class="text-muted small">
+          {{ attempt.completed_at|date:"F j, Y, g:i A" }} &middot; {{ attempt.score }}/100
+          &middot; {% if attempt.is_passed %}Passed{% else %}Not passed{% endif %}
+        </div>
+        <div class="small mt-1">{{ attempt.outcome_diagnosis }}</div>
+      </div>
+    </div>
+
+    <div class="alert alert-warning d-flex gap-2 mb-4" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <div>This permanently removes the attempt, its microscopic report and your lab notes. It cannot be undone.</div>
+    </div>
+
+    <form method="post" class="d-flex gap-2 justify-content-end">
+      {% csrf_token %}
+      <a href="{{ attempt.get_absolute_url }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-danger px-4">
+        <i class="bi bi-trash3 me-1"></i> Yes, delete it
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
