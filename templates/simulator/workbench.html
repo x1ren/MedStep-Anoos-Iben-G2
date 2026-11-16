@@ -112,3 +112,8 @@
 
 {{ workbench_config|json_script:"workbench-config" }}
 {% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'js/stain-chemistry.js' %}"></script>
+  <script src="{% static 'js/workbench.js' %}"></script>
+{% endblock %}
