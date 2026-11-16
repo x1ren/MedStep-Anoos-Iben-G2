@@ -374,7 +374,9 @@ feature/gram-stain-catalog   ●──●    \                      /
   version could fetch colours from the server per step instead.
 - Module descriptions and quick-start cards are still static data
   (`dashboard/catalog.py`); only Gram stain scenarios are database-managed.
-- No rate limiting on submissions yet.
+- Submissions are limited to one saved attempt per scenario every
+  `ATTEMPT_COOLDOWN_SECONDS` (default 10 s), which stops duplicates; there is
+  no wider per-IP rate limiting yet.
 
 ---
 

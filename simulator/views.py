@@ -1,5 +1,7 @@
 import json
+from datetime import timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Avg, Count, Max, ProtectedError, Q
@@ -151,11 +153,36 @@ def workbench(request, pk):
 MAX_STEPS_PAYLOAD = 10_000
 
 
+def recent_attempt(user, scenario):
+    """The user's attempt on `scenario` saved within the cooldown window, if any."""
+    cooldown = settings.ATTEMPT_COOLDOWN_SECONDS
+    if cooldown <= 0:
+        return None
+    since = timezone.now() - timedelta(seconds=cooldown)
+    return (
+        SimulationAttempt.objects
+        .filter(user=user, scenario=scenario, completed_at__gte=since)
+        .order_by('-completed_at')
+        .first()
+    )
+
+
 @learner_required
 @require_POST
 def submit_attempt(request, pk):
     """Grade the submitted run on the server and save it as a SimulationAttempt."""
     scenario = get_object_or_404(GramStainScenario, pk=pk, is_active=True)
+
+    recent = recent_attempt(request.user, scenario)
+    if recent:
+        # Most likely a double-click or a resubmitted form: show the run already saved.
+        messages.info(
+            request,
+            'This run was already saved a moment ago. Wait a few seconds before '
+            'submitting another attempt for this scenario.',
+        )
+        return redirect(recent)
+
     raw_steps = request.POST.get('steps', '')
 
     try:
