@@ -156,6 +156,14 @@ MESSAGE_TAGS = {message_constants.ERROR: 'danger'}
 
 
 # ---------------------------------------------------------------
+# Simulator
+# ---------------------------------------------------------------
+# A learner cannot save a second attempt for the same scenario within this
+# many seconds (stops double-clicks and resubmitted forms creating duplicates).
+ATTEMPT_COOLDOWN_SECONDS = int(env_str('ATTEMPT_COOLDOWN_SECONDS', '10'))
+
+
+# ---------------------------------------------------------------
 # Password validation (Django hashes passwords with PBKDF2 by default)
 # ---------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
