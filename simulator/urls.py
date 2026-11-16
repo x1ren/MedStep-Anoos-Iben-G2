@@ -10,4 +10,7 @@ urlpatterns = [
     path('scenarios/new/', views.ScenarioCreateView.as_view(), name='scenario_create'),
     path('scenarios/<int:pk>/edit/', views.ScenarioUpdateView.as_view(), name='scenario_update'),
     path('scenarios/<int:pk>/delete/', views.ScenarioDeleteView.as_view(), name='scenario_delete'),
+
+    # Learner: interactive Gram staining workbench
+    path('workbench/<int:pk>/', views.workbench, name='workbench'),
 ]

@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Workbench · {{ scenario.title }}{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/workbench.css' %}">
+{% endblock %}
+
+{% block content %}
+{# ---------- Header ---------- #}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <p class="ms-eyebrow mb-1">Gram Staining Workbench</p>
+    <h1 class="h3 fw-bold mb-1">{{ scenario.title }}</h1>
+    <p class="text-muted mb-0">
+      {% if hide_identity %}
+        <i class="bi bi-question-circle me-1"></i> Unknown specimen &mdash; identify the Gram reaction and cell shape yourself.
+      {% else %}
+        Specimen: <span class="fst-italic">{{ scenario.specimen_name }}</span>
+      {% endif %}
+    </p>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <span class="badge rounded-pill bg-primary-soft text-primary px-3 py-2">{{ scenario.get_difficulty_display }}</span>
+    <a href="{% url 'dashboard:learner' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Playground
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  {# ---------- Microscope + timer ---------- #}
+  <div class="col-lg-7">
+    <div class="ms-scope">
+      {% include 'simulator/_slide.html' with cells=cells stain='unstained' slide_id='bench-slide' label='Heat-fixed smear under the microscope' %}
+
+      <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mt-3">
+        <div>
+          <div class="ms-timer-label">Exposure timer</div>
+          <div class="ms-timer" id="exposureTimer" aria-live="off">0.0 s</div>
+          <div class="ms-scope-caption mt-1">
+            On slide: <span class="ms-current-reagent" id="currentReagent">nothing</span>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-light btn-sm" id="fastForward" disabled
+                  title="Add 10 seconds to the current exposure">
+            <i class="bi bi-fast-forward-fill me-1"></i> +10 s
+          </button>
+        </div>
+      </div>
+      <p class="ms-scope-caption mb-0 mt-2"><i class="bi bi-zoom-in me-1"></i> 1000&times; oil immersion &middot; heat-fixed smear</p>
+    </div>
+
+    <div class="ms-card p-3 mt-3">
+      <details>
+        <summary class="fw-semibold">Protocol guide</summary>
+        <ol class="small text-muted mt-2 mb-0 ps-3">
+          <li>Flood with <strong>crystal violet</strong>, then rinse.</li>
+          <li>Add <strong>Gram's iodine</strong> (mordant), then rinse.</li>
+          <li>Apply <strong>decolorizer</strong> briefly &mdash; stop on time and rinse immediately.</li>
+          <li>Counterstain with <strong>safranin</strong>, then rinse.</li>
+          <li>Submit to view the slide under oil immersion and get your report.</li>
+        </ol>
+      </details>
+    </div>
+  </div>
+
+  {# ---------- Reagent rack + log ---------- #}
+  <div class="col-lg-5">
+    <div class="ms-card p-3 mb-3">
+      <h2 class="h6 fw-bold mb-3"><i class="bi bi-eyedropper me-1"></i> Reagent rack</h2>
+      <div class="d-grid gap-2" id="reagentRack">
+        {% for reagent in reagents %}
+          <button type="button" class="ms-reagent" data-reagent="{{ reagent.key }}" disabled>
+            <span class="ms-bottle" style="--bottle: {{ reagent.color }}"></span>
+            <span class="flex-grow-1">
+              <span class="d-block fw-semibold">{{ reagent.label }}</span>
+              <span class="d-block text-muted small">{{ reagent.role }}</span>
+            </span>
+            {% if reagent.target %}
+              <span class="ms-reagent-target">target {{ reagent.target }} s</span>
+            {% endif %}
+          </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="ms-card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 fw-bold mb-0"><i class="bi bi-list-ol me-1"></i> Step log</h2>
+        <button type="button" class="btn btn-link btn-sm p-0" id="resetBench" disabled>Start over</button>
+      </div>
+      <ol class="list-unstyled ms-step-log mb-3" id="stepLog">
+        <li class="text-muted" data-empty>No reagents applied yet.</li>
+      </ol>
+
+      <form method="post" id="submitForm">
+        {% csrf_token %}
+        <input type="hidden" name="steps" id="stepsInput" value="[]">
+        <button type="submit" class="btn btn-primary w-100" id="submitAttempt" disabled>
+          <i class="bi bi-search me-1"></i> Examine slide &amp; submit
+        </button>
+      </form>
+      <noscript>
+        <div class="alert alert-warning small mt-3 mb-0">The workbench needs JavaScript enabled.</div>
+      </noscript>
+    </div>
+  </div>
+</div>
+
+{{ workbench_config|json_script:"workbench-config" }}
+{% endblock %}

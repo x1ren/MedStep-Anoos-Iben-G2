@@ -1,0 +1,113 @@
+/* ==============================================================
+   MedStep — Gram Staining Workbench
+   ============================================================== */
+:root {
+  --stain-unstained: #dfe6ec;
+  --stain-unstained-edge: #8fa2b3;
+  --stain-violet: #5b2a86;
+  --stain-violet-edge: #3d1a5c;
+  --stain-pink: #e0558a;
+  --stain-pink-edge: #b2325f;
+  --stain-colorless: #f5f7f8;
+  --stain-colorless-edge: #c9d3dc;
+}
+
+/* ---------- Microscope field ---------- */
+.ms-scope {
+  background: radial-gradient(circle at 50% 40%, #1d3550 0%, #0b2540 70%);
+  border-radius: var(--ms-radius);
+  padding: 1.25rem;
+}
+.ms-slide {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .35));
+}
+.ms-fov-ring { fill: none; stroke: #0b2540; stroke-width: 6; }
+
+.ms-cell {
+  stroke-width: 1.4;
+  transition: fill 1.2s ease, stroke 1.2s ease;
+}
+.ms-cells[data-stain="unstained"] .ms-cell { fill: var(--stain-unstained); stroke: var(--stain-unstained-edge); }
+.ms-cells[data-stain="violet"]    .ms-cell { fill: var(--stain-violet);    stroke: var(--stain-violet-edge); }
+.ms-cells[data-stain="pink"]      .ms-cell { fill: var(--stain-pink);      stroke: var(--stain-pink-edge); }
+.ms-cells[data-stain="colorless"] .ms-cell { fill: var(--stain-colorless); stroke: var(--stain-colorless-edge); }
+
+/* Liquid pooled on the slide while a reagent is applied */
+.ms-wash {
+  fill: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .6s ease, fill .3s ease;
+}
+.ms-wash.is-active { opacity: .38; }
+
+.ms-scope-caption { color: rgba(255, 255, 255, .7); font-size: .8rem; }
+
+/* ---------- Timer ---------- */
+.ms-timer {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+}
+.ms-timer-label { color: rgba(255, 255, 255, .7); font-size: .8rem; }
+.ms-current-reagent { color: #fff; font-weight: 600; }
+
+/* ---------- Reagent rack ---------- */
+.ms-reagent {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  text-align: left;
+  background: var(--ms-surface);
+  border: 1px solid var(--ms-border);
+  border-radius: .7rem;
+  padding: .65rem .8rem;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .1s ease;
+}
+.ms-reagent:hover:not(:disabled) { border-color: var(--ms-primary); box-shadow: 0 4px 14px rgba(11, 37, 64, .08); }
+.ms-reagent:active:not(:disabled) { transform: scale(.99); }
+.ms-reagent:disabled { opacity: .55; cursor: not-allowed; }
+.ms-reagent.is-active { border-color: var(--ms-primary); box-shadow: 0 0 0 .2rem rgba(13, 122, 114, .2); }
+
+.ms-bottle {
+  width: 1.6rem;
+  height: 2.1rem;
+  border-radius: .35rem .35rem .5rem .5rem;
+  background: var(--bottle, #ccc);
+  box-shadow: inset 0 -.5rem 0 rgba(0, 0, 0, .12), inset .25rem 0 0 rgba(255, 255, 255, .25);
+  flex-shrink: 0;
+  position: relative;
+}
+.ms-bottle::before {           /* dropper cap */
+  content: '';
+  position: absolute;
+  top: -.45rem;
+  left: 50%;
+  width: .6rem;
+  height: .5rem;
+  transform: translateX(-50%);
+  border-radius: .15rem;
+  background: #2b3a4a;
+}
+.ms-reagent-target { font-size: .75rem; color: var(--ms-muted); white-space: nowrap; }
+
+/* ---------- Step log ---------- */
+.ms-step-log {
+  max-height: 14rem;
+  overflow-y: auto;
+  font-size: .85rem;
+}
+.ms-step-log li { display: flex; justify-content: space-between; gap: .5rem; padding: .3rem 0; border-bottom: 1px dashed var(--ms-border); }
+.ms-step-log li:last-child { border-bottom: 0; }
+.ms-swatch { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .4rem; vertical-align: middle; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-cell, .ms-wash { transition: none; }
+}
