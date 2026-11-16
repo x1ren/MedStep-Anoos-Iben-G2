@@ -143,6 +143,7 @@ All settings come from `.env` (never committed). See [.env.example](.env.example
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | Individual Supabase credentials (used when `DATABASE_URL` is empty). |
 | `DB_SSLMODE` | Default `require` — Supabase only accepts SSL. |
 | `DB_CONN_MAX_AGE` | Seconds to reuse DB connections (default `60`). |
+| `ATTEMPT_COOLDOWN_SECONDS` | Seconds a learner must wait before saving another attempt on the same scenario (default `10`, `0` disables). Stops double-clicks creating duplicate records. |
 
 **Supabase:** Project → **Connect** → **Direct** → Method **Session pooler**
 (IPv4-compatible, port `5432`). Paste the URI as `DATABASE_URL`, or copy host /
