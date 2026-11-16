@@ -13,4 +13,11 @@ urlpatterns = [
 
     # Learner: interactive Gram staining workbench
     path('workbench/<int:pk>/', views.workbench, name='workbench'),
+    path('workbench/<int:pk>/submit/', views.submit_attempt, name='submit_attempt'),
+
+    # Learner: own simulation attempts (practice log)
+    path('attempts/', views.AttemptListView.as_view(), name='attempt_list'),
+    path('attempts/<int:pk>/', views.attempt_detail, name='attempt_detail'),
+    path('attempts/<int:pk>/notes/', views.attempt_notes, name='attempt_notes'),
+    path('attempts/<int:pk>/delete/', views.AttemptDeleteView.as_view(), name='attempt_delete'),
 ]

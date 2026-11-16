@@ -29,8 +29,10 @@ class NavbarTests(TestCase):
     def test_learner_links(self):
         html = self.nav_html(self.learner)
         learner_url = reverse('dashboard:learner')
-        for anchor in ('#quick-start', '#modules', '#stats'):
+        for anchor in ('#quick-start', '#modules'):
             self.assertIn(f'{learner_url}{anchor}', html)
+        self.assertIn(reverse('simulator:attempt_list'), html)
+        self.assertIn('Practice log', html)
         self.assertIn('Playground', html)
         self.assertNotIn(reverse('dashboard:admin'), html)
         self.assertNotIn(reverse('simulator:scenario_list'), html)
@@ -44,6 +46,7 @@ class NavbarTests(TestCase):
         self.assertIn(reverse('simulator:scenario_list'), html)
         self.assertIn('Lab Management', html)
         self.assertNotIn(reverse('dashboard:learner'), html)
+        self.assertNotIn(reverse('simulator:attempt_list'), html)
         self.assertNotIn('Quick start', html)
 
     def test_admin_site_link_only_for_staff(self):

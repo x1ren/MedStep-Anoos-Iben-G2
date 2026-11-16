@@ -4,6 +4,7 @@
     stain    - unstained | violet | pink | colorless
     slide_id - unique id prefix (needed when two slides share a page)
     label    - accessible description
+    magnify  - optional zoom factor around the centre (e.g. "1.9" for the report's high-power view)
 {% endcomment %}
 <svg class="ms-slide" viewBox="0 0 400 400" role="img" aria-label="{{ label|default:'Microscope field of view' }}"
      id="{{ slide_id }}">
@@ -18,7 +19,8 @@
 
   <circle class="ms-fov-bg" cx="200" cy="200" r="190" fill="url(#{{ slide_id }}-light)"></circle>
   <g clip-path="url(#{{ slide_id }}-fov)">
-    <g class="ms-cells" data-stain="{{ stain|default:'unstained' }}">
+    <g class="ms-cells" data-stain="{{ stain|default:'unstained' }}"
+       {% if magnify %}transform="translate(200 200) scale({{ magnify }}) translate(-200 -200)"{% endif %}>
       {% for cell in cells %}
         {% if cell.kind == 'rod' %}
           <rect class="ms-cell" x="{{ cell.x }}" y="{{ cell.y }}" width="{{ cell.width }}" height="{{ cell.height }}"

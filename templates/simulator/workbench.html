@@ -96,7 +96,7 @@
         <li class="text-muted" data-empty>No reagents applied yet.</li>
       </ol>
 
-      <form method="post" id="submitForm">
+      <form method="post" action="{% url 'simulator:submit_attempt' scenario.pk %}" id="submitForm">
         {% csrf_token %}
         <input type="hidden" name="steps" id="stepsInput" value="[]">
         <button type="submit" class="btn btn-primary w-100" id="submitAttempt" disabled>

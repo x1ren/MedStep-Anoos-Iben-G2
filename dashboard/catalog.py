@@ -47,14 +47,14 @@ LAB_MODULES = [
 ]
 
 QUICK_STARTS = [
-    {'title': 'Classic Gram stain run', 'module': 'gram-staining', 'minutes': 5,
-     'icon': 'bi-palette2', 'tile': 'ms-tile-gram',
+    # `difficulty` picks which active Gram stain scenario the card launches.
+    {'title': 'Classic Gram stain run', 'module': 'gram-staining', 'difficulty': 'beginner',
+     'minutes': 5, 'icon': 'bi-palette2', 'tile': 'ms-tile-gram',
      'blurb': 'Run all four reagents on a single-organism smear.'},
-    {'title': 'Decolorizer timing drill', 'module': 'gram-staining', 'minutes': 2,
-     'icon': 'bi-stopwatch', 'tile': 'ms-tile-neg',
-     'blurb': 'Practice stopping the alcohol rinse inside the 5–15 s window.'},
-    {'title': 'Four-quadrant streak', 'module': 'quadrant-streak', 'minutes': 4,
-     'icon': 'bi-circle-half', 'tile': 'ms-tile-streak',
+    {'title': 'Decolorizer timing drill', 'module': 'gram-staining', 'difficulty': 'challenge',
+     'minutes': 2, 'icon': 'bi-stopwatch', 'tile': 'ms-tile-neg',
+     'blurb': 'Practice stopping the alcohol rinse inside a tight decolorizer window.'},
+    {'title': 'Four-quadrant streak', 'module': 'quadrant-streak', 'difficulty': None,
+     'minutes': 4, 'icon': 'bi-circle-half', 'tile': 'ms-tile-streak',
      'blurb': 'Flame, cool and drag through all four quadrants.'},
 ]
-

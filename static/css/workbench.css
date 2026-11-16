@@ -108,6 +108,24 @@
 .ms-step-log li:last-child { border-bottom: 0; }
 .ms-swatch { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .4rem; vertical-align: middle; }
 
+/* ---------- Outcome report score ---------- */
+.ms-score {
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  width: 7.5rem;
+  height: 7.5rem;
+  padding-top: 2.4rem;
+  border-radius: 50%;
+  border: .45rem solid var(--ms-border);
+  background: var(--ms-surface);
+}
+.ms-score.is-passed { border-color: #198754; }
+.ms-score.is-failed { border-color: #dc3545; }
+.ms-score-value { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+.ms-score-max { color: var(--ms-muted); font-size: .9rem; margin-left: .1rem; }
+
 @media (prefers-reduced-motion: reduce) {
   .ms-cell, .ms-wash { transition: none; }
 }

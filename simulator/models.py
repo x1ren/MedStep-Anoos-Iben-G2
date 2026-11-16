@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
+from django.urls import reverse
 
 
 def reagent_seconds_field(default, maximum):
@@ -99,6 +100,11 @@ class GramStainScenario(models.Model):
 class SimulationAttempt(models.Model):
     """One completed Gram staining run by a learner (their practice log)."""
 
+    class StainColor(models.TextChoices):
+        VIOLET = 'violet', 'Violet'
+        PINK = 'pink', 'Pink'
+        COLORLESS = 'colorless', 'Colorless'
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -120,6 +126,21 @@ class SimulationAttempt(models.Model):
     lab_notes = models.TextField(blank=True)
     completed_at = models.DateTimeField(auto_now_add=True)
 
+    # Grading snapshot: the result exactly as graded, so later edits to the
+    # scenario (e.g. new target timings) never rewrite a learner's history.
+    observed_color = models.CharField(
+        max_length=10, choices=StainColor.choices, default=StainColor.COLORLESS,
+        help_text='Final colour of the cells in the learner’s smear.',
+    )
+    expected_color = models.CharField(
+        max_length=10, choices=StainColor.choices, default=StainColor.COLORLESS,
+        help_text='Colour a correct stain of this specimen produces.',
+    )
+    grading_feedback = models.JSONField(
+        default=list, blank=True,
+        help_text='Step-by-step feedback produced by the grading engine.',
+    )
+
     class Meta:
         ordering = ['-completed_at']
         indexes = [
@@ -128,7 +149,15 @@ class SimulationAttempt(models.Model):
         ]
         constraints = [
             models.CheckConstraint(condition=Q(score__lte=100), name='attempt_score_max_100'),
+            models.CheckConstraint(
+                condition=Q(observed_color__in=['violet', 'pink', 'colorless'])
+                & Q(expected_color__in=['violet', 'pink', 'colorless']),
+                name='attempt_valid_colors',
+            ),
         ]
 
     def __str__(self):
         return f'{self.user} · {self.scenario} · {self.score}/100'
+
+    def get_absolute_url(self):
+        return reverse('simulator:attempt_detail', args=[self.pk])
