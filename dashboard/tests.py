@@ -4,7 +4,8 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
-from simulator.models import GramStainScenario
+from simulator.models import GramStainScenario, SimulationAttempt
+from simulator.tests.factories import make_attempt, protocol_steps
 
 PASSWORD = 'Gr4mStain!Violet'
 
@@ -93,11 +94,14 @@ class LearnerDashboardTests(TestCase):
 
     def test_personal_stats_start_at_zero(self):
         self.client.force_login(self.learner)
-        stats = self.client.get(self.url).context['stats']
+        response = self.client.get(self.url)
+        stats = response.context['stats']
         self.assertEqual(stats['sessions'], 0)
-        self.assertEqual(stats['modules_completed'], 0)
-        self.assertEqual(stats['modules_available'], 2)
+        self.assertEqual(stats['passed'], 0)
         self.assertIsNone(stats['best_score'])
+        self.assertIsNone(stats['pass_rate'])
+        self.assertEqual((stats['scenarios_passed'], stats['scenarios_total']), (0, 3))
+        self.assertContains(response, 'No simulation runs yet')
 
     def test_does_not_leak_admin_content(self):
         self.client.force_login(self.learner)
@@ -240,3 +244,120 @@ class AdminDashboardTests(TestCase):
         self.assertContains(response, '?q=lab&amp;page=2#engagement')
         page2 = self.client.get(self.url, {'q': 'lab', 'page': 2})
         self.assertEqual(len(page2.context['learners']), 2)
+
+
+class LearnerDashboardWithAttemptsTests(TestCase):
+    """The Student Playground reads scenarios and the learner's own attempts from the database."""
+
+    url = reverse('dashboard:learner')
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.learner = make_learner(first_name='Lea')
+        cls.other = make_learner('bob')
+        cls.staph = GramStainScenario.objects.get(title='Practice #1: Staphylococcus aureus')
+        cls.ecoli = GramStainScenario.objects.get(title='Practice #2: Escherichia coli')
+        cls.unknown = GramStainScenario.objects.get(title='Unknown Clinical Smear')
+        make_attempt(cls.learner, cls.staph)                                   # 100, passed
+        make_attempt(cls.learner, cls.staph, protocol_steps(decolorizer=40))   # failed
+        make_attempt(cls.other, cls.ecoli)                                     # someone else
+
+    def setUp(self):
+        self.client.force_login(self.learner)
+
+    def test_lists_active_scenarios_beginner_first_with_launch_links(self):
+        GramStainScenario.objects.create(
+            title='Hidden draft', specimen_name='X', gram_type='gram_negative', cell_shape='cocci',
+            is_active=False,
+        )
+        response = self.client.get(self.url)
+        titles = [s.title for s in response.context['scenarios']]
+        self.assertEqual(titles, ['Practice #1: Staphylococcus aureus',
+                                  'Practice #2: Escherichia coli', 'Unknown Clinical Smear'])
+        for scenario in (self.staph, self.ecoli, self.unknown):
+            self.assertContains(response, reverse('simulator:workbench', args=[scenario.pk]))
+        self.assertNotContains(response, 'Hidden draft')
+
+    def test_per_scenario_counts_are_my_own(self):
+        scenarios = {s.title: s for s in self.client.get(self.url).context['scenarios']}
+        staph = scenarios['Practice #1: Staphylococcus aureus']
+        ecoli = scenarios['Practice #2: Escherichia coli']
+        self.assertEqual((staph.my_attempts, staph.my_best, staph.my_passes), (2, 100, 1))
+        self.assertEqual((ecoli.my_attempts, ecoli.my_best), (0, None))  # bob's attempt not counted
+
+    def test_stats_and_progress(self):
+        response = self.client.get(self.url)
+        stats = response.context['stats']
+        self.assertEqual(stats['sessions'], 2)
+        self.assertEqual(stats['passed'], 1)
+        self.assertEqual(stats['best_score'], 100)
+        self.assertEqual(stats['pass_rate'], 50)
+        self.assertEqual((stats['scenarios_passed'], stats['scenarios_total']), (1, 3))
+        gram = next(m for m in response.context['modules'] if m['slug'] == 'gram-staining')
+        self.assertEqual(gram['progress'], 33)
+
+    def test_recent_attempts_are_my_own(self):
+        recent = list(self.client.get(self.url).context['recent_attempts'])
+        self.assertEqual(len(recent), 2)
+        self.assertTrue(all(a.user == self.learner for a in recent))
+
+    def test_quick_starts_launch_matching_scenarios(self):
+        cards = {c['title']: c for c in self.client.get(self.url).context['quick_starts']}
+        self.assertEqual(cards['Classic Gram stain run']['scenario'], self.staph)
+        self.assertEqual(cards['Decolorizer timing drill']['scenario'], self.unknown)
+        self.assertIsNone(cards['Four-quadrant streak']['scenario'])
+
+    def test_challenge_specimen_stays_hidden(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, 'Unknown specimen')
+        self.assertNotContains(response, 'Bacillus cereus')
+
+    def test_no_active_scenarios(self):
+        GramStainScenario.objects.update(is_active=False)
+        response = self.client.get(self.url)
+        self.assertContains(response, 'No Gram staining scenarios are available yet')
+        self.assertTrue(all(c['scenario'] is None for c in response.context['quick_starts']))
+
+
+class AdminDashboardAttemptMetricsTests(TestCase):
+    url = reverse('dashboard:admin')
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = make_admin()
+        cls.lea = make_learner('lea')
+        cls.bob = make_learner('bob')
+        cls.staph = GramStainScenario.objects.get(title='Practice #1: Staphylococcus aureus')
+        make_attempt(cls.lea, cls.staph)                                     # 100 pass
+        make_attempt(cls.lea, cls.staph, protocol_steps(decolorizer=40))     # 65 fail
+        make_attempt(cls.bob, cls.staph)                                     # 100 pass
+
+    def setUp(self):
+        self.client.force_login(self.admin)
+
+    def test_overall_attempt_metrics(self):
+        stats = self.client.get(self.url).context['attempt_stats']
+        self.assertEqual(stats['total'], 3)
+        self.assertEqual(stats['last_7d'], 3)
+        self.assertEqual(stats['pass_rate'], 67)
+        self.assertEqual(stats['average_score'], 88)
+
+    def test_per_scenario_metrics(self):
+        scenarios = {s.title: s for s in self.client.get(self.url).context['active_scenarios']}
+        staph = scenarios['Practice #1: Staphylococcus aureus']
+        self.assertEqual(staph.attempt_count, 3)
+        self.assertEqual(round(staph.average_score), 88)
+        self.assertEqual(staph.pass_rate, 67)
+        self.assertIsNone(scenarios['Practice #2: Escherichia coli'].pass_rate)
+
+    def test_learner_list_shows_attempt_counts(self):
+        learners = {u.username: u for u in self.client.get(self.url).context['learners']}
+        self.assertEqual((learners['lea'].attempt_count, learners['lea'].best_score), (2, 100))
+        self.assertEqual(learners['bob'].attempt_count, 1)
+
+    def test_no_attempts_yet(self):
+        SimulationAttempt.objects.all().delete()
+        response = self.client.get(self.url)
+        self.assertEqual(response.context['attempt_stats']['total'], 0)
+        self.assertIsNone(response.context['attempt_stats']['pass_rate'])
+        self.assertIsNone(response.context['attempt_stats']['average_score'])

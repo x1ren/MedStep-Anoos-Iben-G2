@@ -2,7 +2,7 @@ from django import forms
 
 from accounts.forms import BootstrapFormMixin
 
-from .models import GramStainScenario
+from .models import GramStainScenario, SimulationAttempt
 
 
 class GramStainScenarioForm(BootstrapFormMixin, forms.ModelForm):
@@ -47,3 +47,22 @@ class GramStainScenarioForm(BootstrapFormMixin, forms.ModelForm):
 
     def clean_description(self):
         return self.cleaned_data['description'].strip()
+
+
+class LabNotesForm(BootstrapFormMixin, forms.ModelForm):
+    """Learner's own observations on one of their attempts (the only editable field)."""
+
+    lab_notes = forms.CharField(
+        required=False,
+        max_length=2000,
+        label='Lab notes & observations',
+        help_text='Private to you. Up to 2,000 characters.',
+        widget=forms.Textarea(attrs={
+            'rows': 5,
+            'placeholder': 'e.g. Cells turned pink after 35 s of decolorizer — stop at ~15 s next time.',
+        }),
+    )
+
+    class Meta:
+        model = SimulationAttempt
+        fields = ('lab_notes',)

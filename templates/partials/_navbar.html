@@ -33,7 +33,7 @@
             </li>
             <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:learner' %}#quick-start"><i class="bi bi-lightning-charge me-1"></i>Quick start</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:learner' %}#modules"><i class="bi bi-eyedropper me-1"></i>Lab modules</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard:learner' %}#stats"><i class="bi bi-bar-chart me-1"></i>My stats</a></li>
+            <li class="nav-item"><a class="nav-link{% if app == 'simulator' and 'attempt' in url_name %} active{% endif %}" href="{% url 'simulator:attempt_list' %}"><i class="bi bi-journal-text me-1"></i>Practice log</a></li>
           {% endif %}
         </ul>
 

@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}Practice log{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+  <div>
+    <p class="ms-eyebrow mb-1">Practice log</p>
+    <h1 class="h3 fw-bold mb-1">My simulation attempts</h1>
+    <p class="text-muted mb-0">Every Gram staining run you have submitted, newest first.</p>
+  </div>
+  <a href="{% url 'dashboard:learner' %}#gram-scenarios" class="btn btn-primary">
+    <i class="bi bi-play-fill me-1"></i> New run
+  </a>
+</div>
+
+{# ---------- Summary ---------- #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="ms-card p-3 h-100">
+      <div class="ms-stat-value">{{ summary.total }}</div><div class="text-muted small">Attempts</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ms-card p-3 h-100">
+      <div class="ms-stat-value">{{ summary.passed }}</div><div class="text-muted small">Passed</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ms-card p-3 h-100">
+      <div class="ms-stat-value">{{ summary.best|default:"—" }}</div><div class="text-muted small">Best score</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="ms-card p-3 h-100">
+      <div class="ms-stat-value">{% if summary.average is not None %}{{ summary.average|floatformat:0 }}{% else %}—{% endif %}</div>
+      <div class="text-muted small">Average score</div>
+    </div>
+  </div>
+</div>
+
+{# ---------- Filters ---------- #}
+{% if summary.total %}
+  <form method="get" class="ms-card p-3 mb-3 d-flex flex-column flex-md-row gap-2 align-items-md-end">
+    <div class="flex-grow-1">
+      <label class="form-label small fw-medium mb-1" for="filter-scenario">Scenario</label>
+      <select name="scenario" id="filter-scenario" class="form-select form-select-sm">
+        <option value="">All scenarios</option>
+        {% for option in scenario_choices %}
+          <option value="{{ option.pk }}"{% if filters.scenario == option.pk %} selected{% endif %}>{{ option.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form-label small fw-medium mb-1" for="filter-result">Result</label>
+      <select name="result" id="filter-result" class="form-select form-select-sm">
+        <option value="">All results</option>
+        <option value="passed"{% if filters.result == 'passed' %} selected{% endif %}>Passed</option>
+        <option value="failed"{% if filters.result == 'failed' %} selected{% endif %}>Not passed</option>
+      </select>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm px-3"><i class="bi bi-funnel me-1"></i>Filter</button>
+      {% if is_filtered %}<a href="{% url 'simulator:attempt_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>{% endif %}
+    </div>
+  </form>
+{% endif %}
+
+{# ---------- Attempts ---------- #}
+<div class="ms-card overflow-hidden">
+  {% if attempts %}
+    <div class="table-responsive">
+      <table class="table ms-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th class="ps-4">Date</th>
+            <th>Scenario</th>
+            <th>Outcome</th>
+            <th>Score</th>
+            <th>Result</th>
+            <th class="pe-4 text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for attempt in attempts %}
+            <tr>
+              <td class="ps-4 text-nowrap small">{{ attempt.completed_at|date:"M j, Y" }}<div class="text-muted">{{ attempt.completed_at|date:"g:i A" }}</div></td>
+              <td class="fw-semibold">{{ attempt.scenario.title }}</td>
+              <td class="small">{{ attempt.outcome_diagnosis }}</td>
+              <td class="fw-semibold">{{ attempt.score }}</td>
+              <td>
+                {% if attempt.is_passed %}
+                  <span class="badge text-bg-success-subtle text-success-emphasis">Passed</span>
+                {% else %}
+                  <span class="badge text-bg-danger-subtle text-danger-emphasis">Not passed</span>
+                {% endif %}
+              </td>
+              <td class="pe-4 text-end text-nowrap">
+                <a href="{{ attempt.get_absolute_url }}" class="btn btn-outline-primary btn-sm">Report</a>
+                <a href="{% url 'simulator:attempt_delete' attempt.pk %}" class="btn btn-outline-danger btn-sm"
+                   aria-label="Delete attempt from {{ attempt.completed_at|date:'M j, Y g:i A' }}"><i class="bi bi-trash3"></i></a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if is_paginated %}
+      <nav class="d-flex justify-content-between align-items-center px-4 py-3 border-top" aria-label="Practice log pages">
+        <span class="text-muted small">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="{% querystring page=page_obj.previous_page_number %}">Previous</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="{% querystring page=page_obj.next_page_number %}">Next</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  {% elif is_filtered %}
+    <div class="p-5 text-center text-muted">
+      <i class="bi bi-funnel fs-2 d-block mb-2 text-primary"></i>
+      No attempts match these filters. <a href="{% url 'simulator:attempt_list' %}">Show all attempts</a>.
+    </div>
+  {% else %}
+    <div class="p-5 text-center text-muted">
+      <i class="bi bi-journal-medical fs-2 d-block mb-2 text-primary"></i>
+      Your practice log is empty. <a href="{% url 'dashboard:learner' %}#gram-scenarios">Run your first Gram stain</a>.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
